@@ -9,7 +9,7 @@ function getToken() {
 // Generic fetch wrapper with auth
 async function fetchWithAuth(endpoint, options = {}) {
   const token = getToken();
-  
+
   const headers = {
     'Content-Type': 'application/json',
     ...options.headers,
@@ -45,6 +45,24 @@ async function fetchWithAuth(endpoint, options = {}) {
 // ============================================
 export async function adminLogin(email, password) {
   const response = await fetch(`${API_URL}/auth/admin/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+
+  return data;
+}
+
+export async function staffLogin(email, password) {
+  const response = await fetch(`${API_URL}/auth/staff/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -181,6 +199,17 @@ export async function deleteStaff(id) {
   return fetchWithAuth(`/admin/staff/${id}`, {
     method: 'DELETE',
   });
+}
+
+// ============================================
+// Staff APIs (for Staff Portal)
+// ============================================
+export async function getStaffProjects(page = 1, limit = 10) {
+  return fetchWithAuth(`/staff/projects?page=${page}&limit=${limit}`);
+}
+
+export async function getStaffProject(id) {
+  return fetchWithAuth(`/staff/projects/${id}`);
 }
 
 export async function updateStaffStatus(id, status) {
