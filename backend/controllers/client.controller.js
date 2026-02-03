@@ -2,10 +2,10 @@ const Client = require('../models/Client');
 
 const createClient = async (req, res) => {
   try {
-    const { name, email } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!name || !email) {
-      return res.status(400).json({ success: false, message: 'Name and email are required.' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
     }
 
     const existingClient = await Client.findOne({ email });
@@ -13,8 +13,19 @@ const createClient = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Client with this email already exists.' });
     }
 
-    const client = await Client.create({ name, email });
-    res.status(201).json({ success: true, message: 'Client created.', data: client });
+    const client = await Client.create({ name, email, password });
+    
+    // Return client without password
+    const clientResponse = {
+      _id: client._id,
+      name: client.name,
+      email: client.email,
+      status: client.status,
+      createdAt: client.createdAt,
+      updatedAt: client.updatedAt
+    };
+    
+    res.status(201).json({ success: true, message: 'Client created.', data: clientResponse });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
   }
@@ -81,13 +92,48 @@ const updateClientStatus = async (req, res) => {
   }
 };
 
+// Get clients with pagination
+const getClients = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const [clients, total] = await Promise.all([
+      Client.find()
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      Client.countDocuments()
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    res.json({
+      success: true,
+      data: clients,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasMore: page < totalPages
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get all clients without pagination (for dropdowns)
 const getAllClients = async (req, res) => {
   try {
-    const clients = await Client.find();
+    const clients = await Client.find().sort({ name: 1 }).lean();
     res.json({ success: true, data: clients });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
   }
 };
 
-module.exports = { createClient, updateClient, deleteClient, updateClientStatus, getAllClients };
+module.exports = { createClient, updateClient, deleteClient, updateClientStatus, getClients, getAllClients };

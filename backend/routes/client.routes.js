@@ -5,10 +5,12 @@ const {
   updateClient,
   deleteClient,
   updateClientStatus,
+  getClients,
   getAllClients
 } = require('../controllers/client.controller');
 
-router.get('/', getAllClients);
+router.get('/', getClients);
+router.get('/all', getAllClients);
 router.post('/', createClient);
 router.put('/:id', updateClient);
 router.delete('/:id', deleteClient);

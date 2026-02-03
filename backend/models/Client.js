@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 
 const clientSchema = new mongoose.Schema({
   name: {
@@ -13,15 +14,30 @@ const clientSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  password: {
+    type: String,
+    required: true,
+    select: false // Never return password in queries by default
+  },
   status: {
     type: String,
     enum: ['Active', 'Paused', 'Completed'],
     default: 'Active'
-  },
-  createdAt: {
-    type: Date,
-    default: Date.now
   }
+}, { 
+  timestamps: true 
 });
+
+// Hash password before saving
+clientSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  this.password = await bcrypt.hash(this.password, 10);
+  next();
+});
+
+// Method to compare passwords
+clientSchema.methods.comparePassword = async function(candidatePassword) {
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 module.exports = mongoose.model('Client', clientSchema);

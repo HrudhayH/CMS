@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/router';
 import { adminLogin } from '../../services/api';
+import { useAuth } from '../../hooks/useAuth';
 import styles from '../../styles/admin-login.module.css';
 
 export default function AdminLogin() {
@@ -7,23 +9,43 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const router = useRouter();
+  const { isAuthenticated, isLoading, login } = useAuth();
+
+  // Redirect to dashboard if already authenticated
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push('/admin/dashboard');
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError('');
-    setSuccess('');
     setLoading(true);
 
     try {
       const data = await adminLogin(email, password);
-      localStorage.setItem('adminToken', data.token);
-      setSuccess('Login successful!');
+      login(data.token);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  }
+
+  // Show loading while checking auth
+  if (isLoading) {
+    return (
+      <div className={styles.loginContainer}>
+        <div className="loading-spinner loading-spinner-lg"></div>
+      </div>
+    );
+  }
+
+  // Don't show login if already authenticated
+  if (isAuthenticated) {
+    return null;
   }
 
   return (
@@ -32,7 +54,6 @@ export default function AdminLogin() {
         <h1 className={styles.title}>Admin Login</h1>
 
         {error && <div className={styles.errorMessage}>{error}</div>}
-        {success && <div className={styles.successMessage}>{success}</div>}
 
         <div className={styles.formGroup}>
           <label className={styles.label} htmlFor="email">Email</label>
