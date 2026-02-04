@@ -3,45 +3,9 @@ import { useRouter } from 'next/router';
 import StaffLayout from '../../../layouts/staffLayout';
 import { DataTable, Pagination, Modal, Alert } from '../../../components';
 import { formatDate } from '../../../utils/helpers';
+import { getStaffProjects } from '../../../services/api';
 
 const ITEMS_PER_PAGE = 10;
-
-/* ---------- Dummy Data ---------- */
-const DUMMY_PROJECTS = [
-    {
-        id: 1,
-        title: 'Ayurveda Website',
-        description: 'Website redesign for Ayurveda clinic',
-        status: 'In Progress',
-        createdAt: '2026-01-10',
-        updatedAt: '2026-01-28',
-        assignedClients: [{ name: 'Wellness Pvt Ltd' }],
-        progress: 65,
-        priority: 'high',
-    },
-    {
-        id: 2,
-        title: 'CMS Dashboard',
-        description: 'Internal CMS development',
-        status: 'Completed',
-        createdAt: '2025-12-01',
-        updatedAt: '2026-01-15',
-        assignedClients: [{ name: 'Internal' }],
-        progress: 100,
-        priority: 'medium',
-    },
-    {
-        id: 3,
-        title: 'Diet App',
-        description: 'Mobile-friendly diet tracking app',
-        status: 'On Hold',
-        createdAt: '2026-01-05',
-        updatedAt: '2026-01-20',
-        assignedClients: [{ name: 'HealthTech Pvt Ltd' }],
-        progress: 30,
-        priority: 'low',
-    },
-];
 
 /* ---------- Icons ---------- */
 const FileIcon = () => (
@@ -149,21 +113,24 @@ export default function StaffProjects() {
     const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false);
     const [selectedProject, setSelectedProject] = useState(null);
 
-    /* ---------- Dummy Fetch (Client-side Pagination) ---------- */
-    const fetchProjects = useCallback((page = 1) => {
-        setLoading(true);
-
-        const startIndex = (page - 1) * ITEMS_PER_PAGE;
-        const endIndex = startIndex + ITEMS_PER_PAGE;
-
-        setProjects(DUMMY_PROJECTS.slice(startIndex, endIndex));
-        setPagination({
-            page,
-            totalPages: Math.ceil(DUMMY_PROJECTS.length / ITEMS_PER_PAGE),
-            total: DUMMY_PROJECTS.length,
-        });
-
-        setLoading(false);
+    /* ---------- Fetch Projects from Backend API ---------- */
+    const fetchProjects = useCallback(async (page = 1) => {
+        try {
+            setLoading(true);
+            setError('');
+            const response = await getStaffProjects(page, ITEMS_PER_PAGE);
+            setProjects(response.data || []);
+            setPagination(response.pagination || {
+                page: 1,
+                totalPages: 1,
+                total: 0
+            });
+        } catch (err) {
+            setError(err.message || 'Failed to load projects');
+            setProjects([]);
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -303,7 +270,7 @@ export default function StaffProjects() {
                 <div className="table-actions">
                     <button
                         className="btn btn-ghost btn-icon-sm action-btn view-btn"
-                        onClick={() => router.push(`/staff/projects/${row.id}`)}
+                        onClick={() => router.push(`/staff/projects/${row._id}`)}
                         title="View Project Details"
                     >
                         <EyeIcon />
@@ -323,9 +290,9 @@ export default function StaffProjects() {
 
     // Calculate stats
     const stats = {
-        total: DUMMY_PROJECTS.length,
-        inProgress: DUMMY_PROJECTS.filter(p => p.status === 'In Progress').length,
-        completed: DUMMY_PROJECTS.filter(p => p.status === 'Completed').length,
+        total: pagination.total || 0,
+        inProgress: projects.filter(p => p.status === 'In Progress').length,
+        completed: projects.filter(p => p.status === 'Completed').length,
     };
 
     return (

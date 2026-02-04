@@ -3,87 +3,7 @@ import { useEffect, useState } from 'react';
 import StaffLayout from '../../../layouts/staffLayout';
 import { Alert } from '../../../components';
 import { formatDate } from '../../../utils/helpers';
-
-/* ---------- Dummy Projects ---------- */
-const DUMMY_PROJECTS = [
-    {
-        id: 1,
-        title: 'Ayurveda Website',
-        description: 'Complete redesign and development of a modern, responsive website for an Ayurveda clinic. The project includes appointment booking, doctor profiles, treatment information, and a blog section for wellness articles.',
-        status: 'In Progress',
-        createdAt: '2026-01-10',
-        updatedAt: '2026-01-28',
-        assignedClients: [{ name: 'Wellness Pvt Ltd', email: 'contact@wellness.com', phone: '+91 98765 43210' }],
-        techStack: ['React', 'Next.js', 'Node.js', 'PostgreSQL', 'Tailwind CSS'],
-        progress: 65,
-        priority: 'High',
-        deadline: '2026-03-15',
-        teamMembers: ['John Doe', 'Jane Smith', 'Mike Johnson'],
-        statusHistory: [
-            {
-                id: 3,
-                date: '2026-01-28',
-                status: 'In Progress',
-                comment: 'Completed the booking module integration',
-                progress: 65,
-                author: 'John Doe',
-                time: '02:30 PM'
-            },
-            {
-                id: 2,
-                date: '2026-01-25',
-                status: 'In Progress',
-                comment: 'Working on the appointment booking feature',
-                progress: 50,
-                author: 'Jane Smith',
-                time: '11:00 AM'
-            },
-            {
-                id: 1,
-                date: '2026-01-20',
-                status: 'In Progress',
-                comment: 'Initial setup completed, starting frontend development',
-                progress: 30,
-                author: 'John Doe',
-                time: '09:15 AM'
-            },
-        ],
-    },
-    {
-        id: 2,
-        title: 'CMS Dashboard',
-        description: 'Internal content management system for managing company resources, blog posts, and documentation. Features include role-based access control, media library, and analytics dashboard.',
-        status: 'Completed',
-        createdAt: '2025-12-01',
-        updatedAt: '2026-01-15',
-        assignedClients: [{ name: 'Internal', email: 'internal@company.com', phone: 'N/A' }],
-        techStack: ['React', 'Express', 'MongoDB', 'Redux', 'Material-UI'],
-        progress: 100,
-        priority: 'Medium',
-        deadline: '2026-01-15',
-        teamMembers: ['Sarah Williams', 'Tom Brown'],
-        statusHistory: [
-            {
-                id: 2,
-                date: '2026-01-15',
-                status: 'Completed',
-                comment: 'Final testing completed and deployed to production',
-                progress: 100,
-                author: 'Sarah Williams',
-                time: '05:00 PM'
-            },
-            {
-                id: 1,
-                date: '2026-01-10',
-                status: 'In Progress',
-                comment: 'Analytics dashboard integration completed',
-                progress: 90,
-                author: 'Tom Brown',
-                time: '03:30 PM'
-            },
-        ],
-    },
-];
+import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates } from '../../../services/api';
 
 /* ---------- Icons ---------- */
 const ArrowLeftIcon = () => (
@@ -207,6 +127,7 @@ export default function StaffProjectDetails() {
     const { id } = router.query;
 
     const [project, setProject] = useState(null);
+    const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
@@ -217,24 +138,70 @@ export default function StaffProjectDetails() {
         comment: '',
     });
 
+    // Paginated updates state
+    const [updates, setUpdates] = useState([]);
+    const [updatesPage, setUpdatesPage] = useState(1);
+    const [updatesHasMore, setUpdatesHasMore] = useState(false);
+    const [updatesLoading, setUpdatesLoading] = useState(false);
+
+    // Fetch project from backend API
     useEffect(() => {
         if (!id) return;
 
-        const found = DUMMY_PROJECTS.find(
-            (p) => String(p.id) === String(id)
-        );
+        const fetchProject = async () => {
+            try {
+                setLoading(true);
+                setError('');
+                const response = await getStaffProject(id);
+                if (response.success && response.data) {
+                    setProject(response.data);
+                    setUpdateForm({
+                        status: response.data.status || '',
+                        progress: response.data.progress || 0,
+                        comment: '',
+                    });
+                    // Fetch initial paginated updates
+                    fetchUpdates(1, true);
+                } else {
+                    setError('Project not found');
+                }
+            } catch (err) {
+                setError(err.message || 'Failed to load project');
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        if (!found) {
-            setError('Project not found');
-        } else {
-            setProject(found);
-            setUpdateForm({
-                status: found.status,
-                progress: found.progress,
-                comment: '',
-            });
-        }
+        fetchProject();
     }, [id]);
+
+    // Fetch paginated updates
+    const fetchUpdates = async (page, reset = false) => {
+        if (!id) return;
+        try {
+            setUpdatesLoading(true);
+            const response = await getStaffProjectUpdates(id, page, 5);
+            if (response.success) {
+                if (reset) {
+                    setUpdates(response.data || []);
+                } else {
+                    setUpdates(prev => [...prev, ...(response.data || [])]);
+                }
+                setUpdatesPage(page);
+                setUpdatesHasMore(response.pagination?.hasMore || false);
+            }
+        } catch (err) {
+            console.error('Failed to load updates:', err);
+        } finally {
+            setUpdatesLoading(false);
+        }
+    };
+
+    const handleLoadMoreUpdates = () => {
+        if (updatesHasMore && !updatesLoading) {
+            fetchUpdates(updatesPage + 1);
+        }
+    };
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
@@ -244,7 +211,9 @@ export default function StaffProjectDetails() {
         }));
     };
 
-    const handleSubmitUpdate = (e) => {
+    const [submitting, setSubmitting] = useState(false);
+
+    const handleSubmitUpdate = async (e) => {
         e.preventDefault();
 
         // Validation
@@ -253,30 +222,36 @@ export default function StaffProjectDetails() {
             return;
         }
 
-        // Simulate API call
-        const newUpdate = {
-            id: Date.now(),
-            date: new Date().toISOString().split('T')[0],
-            status: updateForm.status,
-            comment: updateForm.comment,
-            progress: parseInt(updateForm.progress),
-            author: 'Current User', // Would come from auth
-            time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-        };
+        try {
+            setSubmitting(true);
+            setError('');
 
-        // Update project locally
-        setProject(prev => ({
-            ...prev,
-            status: updateForm.status,
-            progress: parseInt(updateForm.progress),
-            statusHistory: [newUpdate, ...prev.statusHistory]
-        }));
+            // Call backend API to persist the update
+            const response = await addStaffProjectUpdate(id, {
+                status: updateForm.status,
+                progress: parseInt(updateForm.progress),
+                comment: updateForm.comment.trim()
+            });
 
-        setSuccess('Status update added successfully!');
-        setUpdateForm(prev => ({ ...prev, comment: '' }));
+            if (response.success && response.data) {
+                // Update project with response data from backend
+                setProject(response.data);
+                setSuccess('Status update added successfully!');
+                setUpdateForm(prev => ({ ...prev, comment: '' }));
 
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(''), 3000);
+                // Refresh paginated updates (reset to page 1)
+                fetchUpdates(1, true);
+
+                // Clear success message after 3 seconds
+                setTimeout(() => setSuccess(''), 3000);
+            } else {
+                setError(response.message || 'Failed to add update');
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to add update');
+        } finally {
+            setSubmitting(false);
+        }
     };
 
     const getStatusColor = (status) => {
@@ -895,6 +870,40 @@ export default function StaffProjectDetails() {
                     color: #6b7280;
                 }
 
+                .load-more-container {
+                    display: flex;
+                    justify-content: center;
+                    margin-top: var(--spacing-4);
+                    padding-top: var(--spacing-4);
+                    border-top: 1px solid #f3f4f6;
+                }
+
+                .load-more-button {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 10px 24px;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #4b5563;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .load-more-button:hover:not(:disabled) {
+                    background: #f3f4f6;
+                    border-color: #d1d5db;
+                    color: #1f2937;
+                }
+
+                .load-more-button:disabled {
+                    cursor: not-allowed;
+                    opacity: 0.6;
+                }
+
                 @media (max-width: 1200px) {
                     .content-layout {
                         grid-template-columns: 1fr;
@@ -945,7 +954,13 @@ export default function StaffProjectDetails() {
             {error && <Alert type="error" message={error} onClose={() => setError('')} />}
             {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
-            {project && (
+            {loading && (
+                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '300px' }}>
+                    <div className="loading-spinner loading-spinner-lg"></div>
+                </div>
+            )}
+
+            {!loading && project && (
                 <>
                     {/* Hero Section */}
                     <div className="project-hero">
@@ -1192,9 +1207,9 @@ export default function StaffProjectDetails() {
                                         <p className="form-help">Describe your progress, challenges, or milestones</p>
                                     </div>
 
-                                    <button type="submit" className="submit-button">
+                                    <button type="submit" className="submit-button" disabled={submitting}>
                                         <SendIcon />
-                                        Submit Update
+                                        {submitting ? 'Submitting...' : 'Submit Update'}
                                     </button>
                                 </form>
                             </div>
@@ -1208,50 +1223,65 @@ export default function StaffProjectDetails() {
                                     <h3 className="timeline-title">Status History</h3>
                                 </div>
 
-                                {project.statusHistory && project.statusHistory.length > 0 ? (
-                                    <div className="timeline">
-                                        {project.statusHistory.map((update) => {
-                                            const statusColor = getStatusColor(update.status);
-                                            return (
-                                                <div key={update.id} className="timeline-item">
-                                                    <div className="timeline-marker">
-                                                        <TrendingUpIcon />
-                                                    </div>
-                                                    <div className="timeline-content">
-                                                        <div className="timeline-date">
-                                                            <CalendarIcon />
-                                                            {formatDate(update.date)} at {update.time}
+                                {updates && updates.length > 0 ? (
+                                    <>
+                                        <div className="timeline">
+                                            {updates.map((update, index) => {
+                                                const statusColor = getStatusColor(update.status);
+                                                const updateDate = new Date(update.createdAt);
+                                                const staffName = update.staff?.name || 'Staff';
+                                                return (
+                                                    <div key={update._id || index} className="timeline-item">
+                                                        <div className="timeline-marker">
+                                                            <TrendingUpIcon />
                                                         </div>
-                                                        <div className="timeline-comment">
-                                                            {update.comment}
-                                                        </div>
-                                                        <div className="timeline-meta">
-                                                            <div className="timeline-author">
-                                                                <div className="author-avatar">
-                                                                    {update.author.split(' ').map(n => n[0]).join('')}
+                                                        <div className="timeline-content">
+                                                            <div className="timeline-date">
+                                                                <CalendarIcon />
+                                                                {formatDate(update.createdAt)} at {updateDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                            </div>
+                                                            <div className="timeline-comment">
+                                                                {update.comment}
+                                                            </div>
+                                                            <div className="timeline-meta">
+                                                                <div className="timeline-author">
+                                                                    <div className="author-avatar">
+                                                                        {staffName.split(' ').map(n => n[0]).join('')}
+                                                                    </div>
+                                                                    {staffName}
                                                                 </div>
-                                                                {update.author}
-                                                            </div>
-                                                            <div
-                                                                className="timeline-status"
-                                                                style={{
-                                                                    color: statusColor.color,
-                                                                    background: statusColor.bg,
-                                                                    borderColor: statusColor.border
-                                                                }}
-                                                            >
-                                                                {update.status}
-                                                            </div>
-                                                            <div className="timeline-progress">
-                                                                <TrendingUpIcon />
-                                                                Progress: {update.progress}%
+                                                                <div
+                                                                    className="timeline-status"
+                                                                    style={{
+                                                                        color: statusColor.color,
+                                                                        background: statusColor.bg,
+                                                                        borderColor: statusColor.border
+                                                                    }}
+                                                                >
+                                                                    {update.status}
+                                                                </div>
+                                                                <div className="timeline-progress">
+                                                                    <TrendingUpIcon />
+                                                                    Progress: {update.progress}%
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        {updatesHasMore && (
+                                            <div className="load-more-container">
+                                                <button
+                                                    className="load-more-button"
+                                                    onClick={handleLoadMoreUpdates}
+                                                    disabled={updatesLoading}
+                                                >
+                                                    {updatesLoading ? 'Loading...' : 'Load More'}
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 ) : (
                                     <div className="empty-timeline">
                                         <p>No status updates yet. Be the first to add one!</p>

@@ -1,37 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import StaffLayout from '../../layouts/staffLayout';
-
-/* ---------- Dummy Data ---------- */
-const DUMMY_STATS = {
-    totalProjects: 3,
-    inProgress: 1,
-    completed: 2,
-    pendingTasks: 5,
-};
-
-const DUMMY_RECENT_PROJECTS = [
-    {
-        id: 1,
-        title: 'Ayurveda Website',
-        status: 'In Progress',
-        progress: 65,
-        updatedAt: '2026-01-28',
-    },
-    {
-        id: 2,
-        title: 'CMS Dashboard',
-        status: 'Completed',
-        progress: 100,
-        updatedAt: '2026-01-15',
-    },
-];
-
-const DUMMY_RECENT_ACTIVITIES = [
-    { action: 'Updated project requirements', project: 'Ayurveda Website', time: '2 hours ago' },
-    { action: 'Completed milestone review', project: 'CMS Dashboard', time: '5 hours ago' },
-    { action: 'Submitted weekly report', project: 'Diet App', time: '1 day ago' },
-];
+import { getStaffDashboardStats, getStaffRecentProjects } from '../../services/api';
 
 /* ---------- Icons ---------- */
 const BriefcaseIcon = () => (
@@ -90,10 +60,33 @@ const ActivityIcon = () => (
 
 export default function StaffDashboard() {
     const router = useRouter();
-    const [stats] = useState(DUMMY_STATS);
-    const [recentProjects] = useState(DUMMY_RECENT_PROJECTS);
-    const [activities] = useState(DUMMY_RECENT_ACTIVITIES);
+    const [stats, setStats] = useState({ totalProjects: 0, inProgress: 0, completed: 0, onHold: 0 });
+    const [recentProjects, setRecentProjects] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState('');
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    // Fetch dashboard data from API
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            try {
+                setLoading(true);
+                const [statsRes, projectsRes] = await Promise.all([
+                    getStaffDashboardStats(),
+                    getStaffRecentProjects()
+                ]);
+                setStats(statsRes.data);
+                setRecentProjects(projectsRes.data);
+                setError('');
+            } catch (err) {
+                setError(err.message || 'Failed to load dashboard data');
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, []);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 60000);
@@ -109,11 +102,19 @@ export default function StaffDashboard() {
 
     const getStatusColor = (status) => {
         const colors = {
+            'New': { bg: '#f3f4f6', color: '#4b5563', border: '#6b7280' },
             'In Progress': { bg: '#eff6ff', color: '#1e40af', border: '#3b82f6' },
             'Completed': { bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
             'On Hold': { bg: '#fef3c7', color: '#92400e', border: '#f59e0b' },
         };
         return colors[status] || colors['In Progress'];
+    };
+
+    // Format date for display
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
     return (
@@ -528,153 +529,147 @@ export default function StaffDashboard() {
             </div>
 
             {/* Stats Grid */}
-            <div className="stats-grid">
-                <div className="stat-card">
-                    <div className="stat-card-content">
-                        <div className="stat-icon blue">
-                            <BriefcaseIcon />
-                        </div>
-                        <div className="stat-details">
-                            <div className="stat-label">Total Projects</div>
-                            <div className="stat-value">{stats.totalProjects}</div>
-                        </div>
-                    </div>
+            {loading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
+                    <div className="loading-spinner loading-spinner-lg"></div>
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-card-content">
-                        <div className="stat-icon purple">
-                            <TrendingUpIcon />
-                        </div>
-                        <div className="stat-details">
-                            <div className="stat-label">In Progress</div>
-                            <div className="stat-value">{stats.inProgress}</div>
-                        </div>
-                    </div>
+            ) : error ? (
+                <div style={{ 
+                    padding: '20px', 
+                    background: '#fef2f2', 
+                    color: '#dc2626', 
+                    borderRadius: '8px', 
+                    marginBottom: '24px' 
+                }}>
+                    {error}
                 </div>
-
-                <div className="stat-card">
-                    <div className="stat-card-content">
-                        <div className="stat-icon green">
-                            <CheckCircleIcon />
-                        </div>
-                        <div className="stat-details">
-                            <div className="stat-label">Completed</div>
-                            <div className="stat-value">{stats.completed}</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="stat-card">
-                    <div className="stat-card-content">
-                        <div className="stat-icon orange">
-                            <ClipboardIcon />
-                        </div>
-                        <div className="stat-details">
-                            <div className="stat-label">Pending Tasks</div>
-                            <div className="stat-value">{stats.pendingTasks}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Content Grid */}
-            <div className="content-grid">
-                {/* Recent Projects */}
-                <div className="card">
-                    <div className="card-header">
-                        <h3 className="card-title">Recent Projects</h3>
-                        <a href="/staff/projects" className="view-all-link">
-                            View All
-                            <ArrowRightIcon />
-                        </a>
-                    </div>
-
-                    {recentProjects.map((project) => {
-                        const statusColor = getStatusColor(project.status);
-                        return (
-                            <div
-                                key={project.id}
-                                className="project-item"
-                                onClick={() => router.push(`/staff/projects/${project.id}`)}
-                            >
-                                <div className="project-icon">
-                                    <FolderIcon />
+            ) : (
+                <>
+                    <div className="stats-grid">
+                        <div className="stat-card">
+                            <div className="stat-card-content">
+                                <div className="stat-icon blue">
+                                    <BriefcaseIcon />
                                 </div>
-                                <div className="project-info">
-                                    <div className="project-title">{project.title}</div>
-                                    <div className="project-meta">
-                                        <span
-                                            className="status-badge"
-                                            style={{
-                                                color: statusColor.color,
-                                                background: statusColor.bg,
-                                                borderColor: statusColor.border
-                                            }}
-                                        >
-                                            {project.status}
-                                        </span>
-                                    </div>
-                                </div>
-                                <div className="progress-mini">
-                                    <div className="progress-bar-mini">
-                                        <div
-                                            className="progress-fill-mini"
-                                            style={{ width: `${project.progress}%` }}
-                                        />
-                                    </div>
-                                    <div className="progress-text-mini">{project.progress}%</div>
+                                <div className="stat-details">
+                                    <div className="stat-label">Total Projects</div>
+                                    <div className="stat-value">{stats.totalProjects}</div>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
-
-                {/* Sidebar */}
-                <div>
-                    {/* Recent Activity */}
-                    <div className="card" style={{ marginBottom: 'var(--spacing-5)' }}>
-                        <div className="card-header">
-                            <h3 className="card-title">Recent Activity</h3>
                         </div>
-                        <ul className="activity-list">
-                            {activities.map((activity, index) => (
-                                <li key={index} className="activity-item">
-                                    <div className="activity-icon">
-                                        <ActivityIcon />
-                                    </div>
-                                    <div className="activity-content">
-                                        <div className="activity-action">{activity.action}</div>
-                                        <div className="activity-project">{activity.project}</div>
-                                        <div className="activity-time">
-                                            <ClockIcon />
-                                            {activity.time}
-                                        </div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
+
+                        <div className="stat-card">
+                            <div className="stat-card-content">
+                                <div className="stat-icon purple">
+                                    <TrendingUpIcon />
+                                </div>
+                                <div className="stat-details">
+                                    <div className="stat-label">In Progress</div>
+                                    <div className="stat-value">{stats.inProgress}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-card-content">
+                                <div className="stat-icon green">
+                                    <CheckCircleIcon />
+                                </div>
+                                <div className="stat-details">
+                                    <div className="stat-label">Completed</div>
+                                    <div className="stat-value">{stats.completed}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="stat-card">
+                            <div className="stat-card-content">
+                                <div className="stat-icon orange">
+                                    <ClipboardIcon />
+                                </div>
+                                <div className="stat-details">
+                                    <div className="stat-label">On Hold</div>
+                                    <div className="stat-value">{stats.onHold}</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    {/* Quick Links */}
-                    <div className="card">
-                        <div className="card-header">
-                            <h3 className="card-title">Quick Links</h3>
-                        </div>
-                        <ul className="quick-links">
-                            <li className="quick-link-item">
-                                <a href="/staff/projects" className="quick-link">
-                                    <FolderIcon />
-                                    View My Projects
-                                    <span className="quick-link-arrow">
-                                        <ArrowRightIcon />
-                                    </span>
+                    {/* Content Grid */}
+                    <div className="content-grid">
+                        {/* Recent Projects */}
+                        <div className="card">
+                            <div className="card-header">
+                                <h3 className="card-title">Recent Projects</h3>
+                                <a href="/staff/projects" className="view-all-link">
+                                    View All
+                                    <ArrowRightIcon />
                                 </a>
-                            </li>
-                        </ul>
+                            </div>
+
+                            {recentProjects.length === 0 ? (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                                    No projects assigned yet
+                                </div>
+                            ) : (
+                                recentProjects.map((project) => {
+                                    const statusColor = getStatusColor(project.status);
+                                    return (
+                                        <div
+                                            key={project._id}
+                                            className="project-item"
+                                            onClick={() => router.push(`/staff/projects/${project._id}`)}
+                                        >
+                                            <div className="project-icon">
+                                                <FolderIcon />
+                                            </div>
+                                            <div className="project-info">
+                                                <div className="project-title">{project.title}</div>
+                                                <div className="project-meta">
+                                                    <span
+                                                        className="status-badge"
+                                                        style={{
+                                                            color: statusColor.color,
+                                                            background: statusColor.bg,
+                                                            borderColor: statusColor.border
+                                                        }}
+                                                    >
+                                                        {project.status}
+                                                    </span>
+                                                    <span style={{ marginLeft: '8px', fontSize: '12px', color: '#9ca3af' }}>
+                                                        {formatDate(project.updatedAt)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
+                        </div>
+
+                        {/* Sidebar */}
+                        <div>
+                            {/* Quick Links */}
+                            <div className="card">
+                                <div className="card-header">
+                                    <h3 className="card-title">Quick Links</h3>
+                                </div>
+                                <ul className="quick-links">
+                                    <li className="quick-link-item">
+                                        <a href="/staff/projects" className="quick-link">
+                                            <FolderIcon />
+                                            View My Projects
+                                            <span className="quick-link-arrow">
+                                                <ArrowRightIcon />
+                                            </span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
+                </>
+            )}
         </div>
     );
 }

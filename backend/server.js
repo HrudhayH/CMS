@@ -5,6 +5,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/auth.routes');
 const adminRoutes = require('./routes/admin.routes');
+const staffPortalRoutes = require('./routes/staffPortal.routes');
 
 const app = express();
 
@@ -15,6 +16,7 @@ connectDB();
 
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
+app.use('/staff', staffPortalRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'CMS API is running.' });

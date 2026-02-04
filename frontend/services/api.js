@@ -1,12 +1,18 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
-// Get token from localStorage
+// Get admin token from localStorage
 function getToken() {
   if (typeof window === 'undefined') return null;
   return localStorage.getItem('adminToken');
 }
 
-// Generic fetch wrapper with auth
+// Get staff token from localStorage
+function getStaffToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('staffToken');
+}
+
+// Generic fetch wrapper with admin auth
 async function fetchWithAuth(endpoint, options = {}) {
   const token = getToken();
 
@@ -32,6 +38,40 @@ async function fetchWithAuth(endpoint, options = {}) {
       if (typeof window !== 'undefined') {
         localStorage.removeItem('adminToken');
         window.location.href = '/admin/login';
+      }
+    }
+    throw new Error(data.message || 'Request failed');
+  }
+
+  return data;
+}
+
+// Fetch wrapper for staff portal (uses staffToken)
+async function fetchWithStaffAuth(endpoint, options = {}) {
+  const token = getStaffToken();
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // Handle token expiration for staff
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('staffToken');
+        window.location.href = '/staff/login';
       }
     }
     throw new Error(data.message || 'Request failed');
@@ -202,14 +242,33 @@ export async function deleteStaff(id) {
 }
 
 // ============================================
-// Staff APIs (for Staff Portal)
+// Staff Portal APIs (uses staffToken)
 // ============================================
+export async function getStaffDashboardStats() {
+  return fetchWithStaffAuth('/staff/dashboard/stats');
+}
+
+export async function getStaffRecentProjects() {
+  return fetchWithStaffAuth('/staff/dashboard/recent-projects');
+}
+
 export async function getStaffProjects(page = 1, limit = 10) {
-  return fetchWithAuth(`/staff/projects?page=${page}&limit=${limit}`);
+  return fetchWithStaffAuth(`/staff/projects?page=${page}&limit=${limit}`);
 }
 
 export async function getStaffProject(id) {
-  return fetchWithAuth(`/staff/projects/${id}`);
+  return fetchWithStaffAuth(`/staff/projects/${id}`);
+}
+
+export async function addStaffProjectUpdate(projectId, updateData) {
+  return fetchWithStaffAuth(`/staff/projects/${projectId}/update`, {
+    method: 'POST',
+    body: JSON.stringify(updateData),
+  });
+}
+
+export async function getStaffProjectUpdates(projectId, page = 1, limit = 5) {
+  return fetchWithStaffAuth(`/staff/projects/${projectId}/updates?page=${page}&limit=${limit}`);
 }
 
 export async function updateStaffStatus(id, status) {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { useAuth } from '../hooks/useAuth';
+import { useStaffAuth } from '../hooks/useStaffAuth';
 import styles from './AdminLayout.module.css';
 
 // Icons
@@ -57,7 +57,7 @@ export default function StaffLayout({ children }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const router = useRouter();
-    const { user, logout, isAuthenticated, isLoading } = useAuth();
+    const { user, logout, isAuthenticated, isLoading } = useStaffAuth();
 
     useEffect(() => {
         setIsMobileOpen(false);

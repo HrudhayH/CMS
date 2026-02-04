@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { staffLogin } from '../../services/api';
-import { useAuth } from '../../hooks/useAuth';
-import { getUserRole } from '../../utils/auth';
+import { useStaffAuth } from '../../hooks/useStaffAuth';
 import styles from '../../styles/admin-login.module.css';
 
 export default function StaffLogin() {
@@ -11,19 +10,14 @@ export default function StaffLogin() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const router = useRouter();
-    const { isAuthenticated, isLoading, login, user } = useAuth();
+    const { isAuthenticated, isLoading, login, user } = useStaffAuth();
 
     // Redirect to dashboard if already authenticated as staff
     useEffect(() => {
         if (!isLoading && isAuthenticated) {
-            if (user?.role === 'staff') {
-                router.push('/staff/dashboard');
-            } else {
-                // If logged in but not staff, we might want to stay here or show error
-                setError('Not authorized as staff');
-            }
+            router.push('/staff/dashboard');
         }
-    }, [isLoading, isAuthenticated, user, router]);
+    }, [isLoading, isAuthenticated, router]);
 
     async function handleSubmit(e) {
         e.preventDefault();
@@ -32,21 +26,8 @@ export default function StaffLogin() {
 
         try {
             const data = await staffLogin(email, password);
-
-            // Check role from the token before logging in
-            const role = getUserRole(data.token);
-
-            if (role === 'staff') {
-                login(data.token);
-                // Note: useAuth's login currently hardcodes redirect to /admin/dashboard
-                // We'll let it happen then redirect again, or we can handle it here if useAuth allowed
-                // Actually, looking at useAuth.js, it calls router.push('/admin/dashboard')
-                // We might need to override that or handle the double hop for now as per "DO NOT REFACTOR" rules
-                // However, the requirement says "Redirect to /staff/dashboard"
-                router.push('/staff/dashboard');
-            } else {
-                setError('Not authorized as staff');
-            }
+            // useStaffAuth.login() stores token and redirects to /staff/dashboard
+            login(data.token);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -64,7 +45,7 @@ export default function StaffLogin() {
     }
 
     // Don't show login if already authenticated as staff
-    if (isAuthenticated && user?.role === 'staff') {
+    if (isAuthenticated) {
         return null;
     }
 
@@ -76,15 +57,15 @@ export default function StaffLogin() {
                 {error && <div className={styles.errorMessage}>{error}</div>}
 
                 <div className={styles.formGroup}>
-                    <label className={styles.label} htmlFor="email">Email / Username</label>
+                    <label className={styles.label} htmlFor="email">Email</label>
                     <input
                         className={styles.input}
                         id="email"
-                        type="text"
+                        type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
-                        placeholder="Enter your email or username"
+                        placeholder="Enter your email"
                     />
                 </div>
 

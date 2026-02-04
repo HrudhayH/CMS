@@ -47,7 +47,42 @@ const projectSchema = new mongoose.Schema(
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Staff'
       }
-    ]
+    ],
+
+    // Daily updates from staff
+    dailyUpdates: [
+      {
+        staff: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Staff',
+          required: true
+        },
+        status: {
+          type: String,
+          required: true
+        },
+        progress: {
+          type: Number,
+          default: 0
+        },
+        comment: {
+          type: String,
+          required: true
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
+    // Overall project progress percentage
+    progress: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    }
   },
   {
     timestamps: true
