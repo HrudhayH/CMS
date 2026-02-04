@@ -57,6 +57,24 @@ const FileIcon = () => (
   </svg>
 );
 
+const CalendarIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+);
+
+const UsersIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+  </svg>
+);
+
 export default function Projects() {
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
@@ -98,7 +116,7 @@ export default function Projects() {
     return `${day} ${month} ${year}`;
   };
 
-  // Helper function to render timeline
+  // Helper function to render timeline with enhanced styling
   const renderTimeline = (startDate, endDate) => {
     const start = formatDateShort(startDate);
     const end = formatDateShort(endDate);
@@ -108,13 +126,25 @@ export default function Projects() {
     }
 
     return (
-      <span style={{ fontSize: 'var(--font-size-sm, 14px)', color: 'var(--color-text-secondary)' }}>
-        {start} → {end}
-      </span>
+      <div style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: '6px',
+        padding: '4px 10px',
+        backgroundColor: 'var(--color-bg-secondary, #f9fafb)',
+        borderRadius: 'var(--border-radius-md, 6px)',
+        fontSize: 'var(--font-size-xs, 12px)',
+        color: 'var(--color-text-secondary)'
+      }}>
+        <CalendarIcon />
+        <span style={{ fontWeight: '500' }}>{start}</span>
+        <span style={{ color: 'var(--color-text-muted)' }}>→</span>
+        <span style={{ fontWeight: '500' }}>{end}</span>
+      </div>
     );
   };
 
-  // Helper function to render tech stack badges
+  // Helper function to render tech stack badges with enhanced design
   const renderTechStack = (techStack) => {
     if (!techStack || techStack.length === 0) {
       return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
@@ -124,19 +154,22 @@ export default function Projects() {
     const remaining = techStack.length - 3;
 
     return (
-      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
         {displayedTech.map((tech, index) => (
           <span
             key={index}
             style={{
-              display: 'inline-block',
-              padding: '2px 8px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 10px',
               fontSize: 'var(--font-size-xs, 12px)',
-              fontWeight: 'var(--font-weight-medium, 500)',
+              fontWeight: '600',
               color: 'var(--color-primary-700, #1e40af)',
               backgroundColor: 'var(--color-primary-50, #eff6ff)',
-              borderRadius: 'var(--border-radius-sm, 4px)',
-              whiteSpace: 'nowrap'
+              border: '1px solid var(--color-primary-200, #bfdbfe)',
+              borderRadius: 'var(--border-radius-full, 9999px)',
+              whiteSpace: 'nowrap',
+              letterSpacing: '0.01em'
             }}
           >
             {tech}
@@ -145,9 +178,17 @@ export default function Projects() {
         {remaining > 0 && (
           <span
             style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minWidth: '28px',
+              height: '28px',
+              padding: '0 8px',
               fontSize: 'var(--font-size-xs, 12px)',
               color: 'var(--color-text-muted)',
-              fontWeight: 'var(--font-weight-medium, 500)'
+              backgroundColor: 'var(--color-bg-secondary, #f3f4f6)',
+              borderRadius: 'var(--border-radius-full, 9999px)',
+              fontWeight: '600'
             }}
           >
             +{remaining}
@@ -157,25 +198,85 @@ export default function Projects() {
     );
   };
 
-  // Helper function to render staff list
+  // Helper function to render staff list with avatars
   const renderStaffList = (staff) => {
     if (!staff || staff.length === 0) {
       return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
     }
 
-    const displayedStaff = staff.slice(0, 2);
-    const remaining = staff.length - 2;
+    const displayedStaff = staff.slice(0, 3);
+    const remaining = staff.length - 3;
 
     return (
-      <span style={{ fontSize: 'var(--font-size-sm, 14px)', color: 'var(--color-text-secondary)' }}>
-        {displayedStaff.map(s => s.name).join(', ')}
-        {remaining > 0 && (
-          <span style={{ color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-medium, 500)' }}>
-            {' '}+{remaining}
-          </span>
-        )}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginLeft: '-4px' }}>
+          {displayedStaff.map((s, index) => (
+            <div
+              key={s._id}
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: `hsl(${(index * 137.5) % 360}, 65%, 85%)`,
+                border: '2px solid white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--font-size-xs, 12px)',
+                fontWeight: '600',
+                color: `hsl(${(index * 137.5) % 360}, 65%, 35%)`,
+                marginLeft: index > 0 ? '-8px' : '0',
+                zIndex: displayedStaff.length - index,
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              title={s.name}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0) scale(1)'}
+            >
+              {s.name.charAt(0).toUpperCase()}
+            </div>
+          ))}
+          {remaining > 0 && (
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                backgroundColor: 'var(--color-bg-secondary, #f3f4f6)',
+                border: '2px solid white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'var(--font-size-xs, 11px)',
+                fontWeight: '700',
+                color: 'var(--color-text-secondary)',
+                marginLeft: '-8px',
+                zIndex: 0
+              }}
+              title={`+${remaining} more`}
+            >
+              +{remaining}
+            </div>
+          )}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: 'var(--font-size-xs, 12px)', color: 'var(--color-text-muted)' }}>
+          <UsersIcon />
+          <span>{staff.length}</span>
+        </div>
+      </div>
     );
+  };
+
+  // Get status color
+  const getStatusColor = (status) => {
+    const colors = {
+      'New': { bg: '#eff6ff', text: '#1e40af', border: '#bfdbfe' },
+      'In Progress': { bg: '#fef3c7', text: '#92400e', border: '#fde68a' },
+      'On Hold': { bg: '#fee2e2', text: '#991b1b', border: '#fecaca' },
+      'Completed': { bg: '#d1fae5', text: '#065f46', border: '#a7f3d0' }
+    };
+    return colors[status] || colors['New'];
   };
 
   const fetchProjects = useCallback(async (page = 1) => {
@@ -324,31 +425,28 @@ export default function Projects() {
     {
       key: 'title',
       title: 'Project Title',
-      render: (value) => (
-        <span style={{ fontWeight: 'var(--font-weight-semibold, 600)', fontSize: 'var(--font-size-sm, 14px)' }}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'status',
-      title: 'Status',
       render: (value, row) => (
-        <select
-          className="form-select"
-          value={value}
-          onChange={(e) => handleStatusChange(row._id, e.target.value)}
-          style={{
-            minWidth: '130px',
-            padding: '4px 8px',
-            fontSize: 'var(--font-size-xs, 12px)',
-            height: '32px'
-          }}
-        >
-          {PROJECT_STATUSES.map(status => (
-            <option key={status} value={status}>{status}</option>
-          ))}
-        </select>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span style={{
+            fontWeight: '600',
+            fontSize: 'var(--font-size-sm, 14px)',
+            color: 'var(--color-text-primary)'
+          }}>
+            {value}
+          </span>
+          {row.description && (
+            <span style={{
+              fontSize: 'var(--font-size-xs, 12px)',
+              color: 'var(--color-text-muted)',
+              maxWidth: '300px',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {row.description}
+            </span>
+          )}
+        </div>
       )
     },
     {
@@ -363,19 +461,53 @@ export default function Projects() {
     },
     {
       key: 'assignedStaff',
-      title: 'Assigned Staff',
+      title: 'Team',
       render: (value) => renderStaffList(value)
+    },
+    {
+      key: 'status',
+      title: 'Status',
+      render: (value, row) => {
+        const statusColor = getStatusColor(value);
+        return (
+          <select
+            className="form-select"
+            value={value}
+            onChange={(e) => handleStatusChange(row._id, e.target.value)}
+            style={{
+              minWidth: '140px',
+              padding: '6px 12px',
+              fontSize: 'var(--font-size-xs, 12px)',
+              height: '36px',
+              fontWeight: '600',
+              color: statusColor.text,
+              backgroundColor: statusColor.bg,
+              border: `1px solid ${statusColor.border}`,
+              borderRadius: 'var(--border-radius-md, 6px)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {PROJECT_STATUSES.map(status => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+        );
+      }
     },
     {
       key: 'actions',
       title: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: '4px' }}>
+        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: '6px' }}>
           <button
             className="btn btn-ghost btn-icon-sm"
             onClick={() => setIsRequirementModalOpen(true)}
             title="Requirement Document"
+            style={{
+              transition: 'all 0.2s ease'
+            }}
           >
             <FileIcon />
           </button>
@@ -383,6 +515,9 @@ export default function Projects() {
             className="btn btn-ghost btn-icon-sm"
             onClick={() => openEditModal(row)}
             title="Edit"
+            style={{
+              transition: 'all 0.2s ease'
+            }}
           >
             <EditIcon />
           </button>
@@ -390,7 +525,10 @@ export default function Projects() {
             className="btn btn-ghost btn-icon-sm"
             onClick={() => openDeleteDialog(row)}
             title="Delete"
-            style={{ color: 'var(--color-error-600)' }}
+            style={{
+              color: 'var(--color-error-600)',
+              transition: 'all 0.2s ease'
+            }}
           >
             <TrashIcon />
           </button>
@@ -399,39 +537,210 @@ export default function Projects() {
     }
   ];
 
+  // Calculate statistics
+
+
   return (
     <div>
-      <div className="page-header">
+      <div className="page-header" style={{
+        marginBottom: 'var(--spacing-6, 24px)',
+        paddingBottom: 'var(--spacing-6, 24px)',
+        borderBottom: '1px solid var(--color-border, #e5e7eb)'
+      }}>
         <div>
-          <h1 className="page-title">Projects</h1>
-          <p className="page-subtitle">Manage your projects and assignments</p>
+          <h1 className="page-title" style={{
+            fontSize: 'var(--font-size-2xl, 28px)',
+            fontWeight: '700',
+            marginBottom: 'var(--spacing-2, 8px)',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            Projects
+          </h1>
+          <p className="page-subtitle" style={{
+            fontSize: 'var(--font-size-sm, 14px)',
+            color: 'var(--color-text-muted)'
+          }}>
+            Manage your projects and assignments
+          </p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={openAddModal}>
+          <button className="btn btn-primary" onClick={openAddModal} style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '12px 24px',
+            fontSize: 'var(--font-size-sm, 14px)',
+            fontWeight: '600',
+            borderRadius: 'var(--border-radius-lg, 8px)',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 4px 6px rgba(99, 102, 241, 0.15)',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            border: 'none'
+          }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 12px rgba(99, 102, 241, 0.25)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(99, 102, 241, 0.15)';
+            }}>
             <PlusIcon />
             Add Project
           </button>
         </div>
       </div>
 
+      {/* Statistics Cards */}
+
+
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
-      <DataTable
-        columns={columns}
-        data={projects}
-        loading={loading}
-        emptyMessage="No projects found"
-        emptyDescription="Get started by creating your first project."
-      />
+      {/* Search and Filter Bar */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: 'var(--spacing-4, 16px)',
+        borderRadius: 'var(--border-radius-lg, 8px)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        marginBottom: 'var(--spacing-4, 16px)',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        gap: 'var(--spacing-3, 12px)',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: '1', minWidth: '250px' }}>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search projects..."
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 40px',
+                fontSize: 'var(--font-size-sm, 14px)',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                outline: 'none',
+                transition: 'all 0.2s ease'
+              }}
+              onFocus={(e) => {
+                e.currentTarget.style.borderColor = '#667eea';
+                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.currentTarget.style.borderColor = 'var(--color-border, #e5e7eb)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-text-muted)'
+              }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+        </div>
 
-      <Pagination
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-        totalItems={pagination.total}
-        itemsPerPage={ITEMS_PER_PAGE}
-        onPageChange={handlePageChange}
-      />
+        <div style={{ display: 'flex', gap: 'var(--spacing-2, 8px)', alignItems: 'center' }}>
+          <select
+            style={{
+              padding: '10px 12px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              outline: 'none',
+              minWidth: '140px'
+            }}
+          >
+            <option value="">All Statuses</option>
+            {PROJECT_STATUSES.map(status => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+
+          <button
+            style={{
+              padding: '10px 16px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: '500',
+              color: 'var(--color-text-secondary)',
+              transition: 'all 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary, #f9fafb)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="4" y1="21" x2="4" y2="14" />
+              <line x1="4" y1="10" x2="4" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12" y2="3" />
+              <line x1="20" y1="21" x2="20" y2="16" />
+              <line x1="20" y1="12" x2="20" y2="3" />
+              <line x1="1" y1="14" x2="7" y2="14" />
+              <line x1="9" y1="8" x2="15" y2="8" />
+              <line x1="17" y1="16" x2="23" y2="16" />
+            </svg>
+            Filters
+          </button>
+        </div>
+      </div>
+
+      <div style={{
+        backgroundColor: 'white',
+        borderRadius: 'var(--border-radius-lg, 10px)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        overflow: 'hidden',
+        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)'
+      }}>
+        <DataTable
+          columns={columns}
+          data={projects}
+          loading={loading}
+          emptyMessage="No projects found"
+          emptyDescription="Get started by creating your first project."
+        />
+      </div>
+
+      <div style={{ marginTop: 'var(--spacing-5, 20px)' }}>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={handlePageChange}
+        />
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
@@ -701,10 +1010,41 @@ export default function Projects() {
           </button>
         }
       >
-        <div className="empty-state" style={{ padding: 'var(--spacing-6)' }}>
-          <FileIcon style={{ width: 48, height: 48 }} />
-          <h3 className="empty-state-title">Feature Coming Soon</h3>
-          <p className="empty-state-description" style={{ marginBottom: 0 }}>
+        <div style={{
+          padding: 'var(--spacing-8, 32px)',
+          textAlign: 'center',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: 'var(--spacing-4, 16px)'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 'var(--spacing-2, 8px)'
+          }}>
+            <FileIcon style={{ width: 36, height: 36, color: 'white' }} />
+          </div>
+          <h3 style={{
+            fontSize: 'var(--font-size-xl, 20px)',
+            fontWeight: '700',
+            color: 'var(--color-text-primary)',
+            margin: 0
+          }}>
+            Feature Coming Soon
+          </h3>
+          <p style={{
+            fontSize: 'var(--font-size-sm, 14px)',
+            color: 'var(--color-text-muted)',
+            lineHeight: '1.6',
+            maxWidth: '400px',
+            margin: 0
+          }}>
             The Requirement Document feature is currently under development.
             Check back later for updates.
           </p>

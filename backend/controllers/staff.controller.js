@@ -73,8 +73,8 @@ const updateStaffStatus = async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
 
-    if (!['Active', 'Paused', 'Completed'].includes(status)) {
-      return res.status(400).json({ success: false, message: 'Invalid status. Use Active, Paused, or Completed.' });
+    if (!['Active', 'Inactive'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status. Use Active or Inactive.' });
     }
 
     const staff = await Staff.findByIdAndUpdate(
