@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
-import { 
-  getStaff, 
-  createStaff, 
-  updateStaff, 
-  deleteStaff, 
-  updateStaffStatus 
+import {
+  getStaff,
+  createStaff,
+  updateStaff,
+  deleteStaff,
+  updateStaffStatus
 } from '../../services/api';
 import { formatDate } from '../../utils/helpers';
 
@@ -41,17 +41,18 @@ export default function Staff() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   const [deletingStaff, setDeletingStaff] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     password: ''
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -80,7 +81,7 @@ export default function Staff() {
 
   const openAddModal = () => {
     setEditingStaff(null);
-    setFormData({ name: '', email: '', password: '' });
+    setFormData({ name: '', email: '', phone: '', password: '' });
     setIsModalOpen(true);
   };
 
@@ -89,6 +90,7 @@ export default function Staff() {
     setFormData({
       name: member.name,
       email: member.email,
+      phone: member.phone,
       password: '' // Password is not shown during edit
     });
     setIsModalOpen(true);
@@ -118,16 +120,16 @@ export default function Staff() {
 
     try {
       if (editingStaff) {
-        // Only send name and email for updates (no password)
-        const { name, email } = formData;
-        await updateStaff(editingStaff._id, { name, email });
+        // Only send name, email, and phone for updates (no password)
+        const { name, email, phone } = formData;
+        await updateStaff(editingStaff._id, { name, email, phone });
         setSuccess('Staff member updated successfully');
       } else {
         await createStaff(formData);
         setSuccess('Staff member created successfully');
       }
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '' }); // Clear form including password
+      setFormData({ name: '', email: '', phone: '', password: '' }); // Clear form including password
       fetchStaff(pagination.page);
     } catch (err) {
       setError(err.message || 'Failed to save staff member');
@@ -138,7 +140,7 @@ export default function Staff() {
 
   const handleDelete = async () => {
     if (!deletingStaff) return;
-    
+
     try {
       await deleteStaff(deletingStaff._id);
       setSuccess('Staff member deleted successfully');
@@ -173,6 +175,13 @@ export default function Staff() {
       title: 'Email',
       render: (value) => (
         <span className="text-muted">{value}</span>
+      )
+    },
+    {
+      key: 'phone',
+      title: 'Phone',
+      render: (value) => (
+        <span className="text-muted">{value || '—'}</span>
       )
     },
     {
@@ -263,15 +272,15 @@ export default function Staff() {
         title={editingStaff ? 'Edit Staff' : 'Add Staff'}
         footer={
           <>
-            <button 
-              className="btn btn-secondary" 
+            <button
+              className="btn btn-secondary"
               onClick={() => setIsModalOpen(false)}
               disabled={formLoading}
             >
               Cancel
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSubmit}
               disabled={formLoading}
             >
@@ -305,6 +314,21 @@ export default function Staff() {
               placeholder="Enter staff email"
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              className="form-input"
+              value={formData.phone}
+              onChange={handleFormChange}
+              placeholder="Enter phone number"
+              pattern="[0-9]{10}"
+              title="Please enter a 10-digit phone number"
+            />
+            <p className="form-hint">Format: 10-digit mobile number</p>
           </div>
 
           {/* Password field - only shown when creating new staff */}

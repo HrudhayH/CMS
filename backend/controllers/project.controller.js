@@ -58,16 +58,39 @@ const getProject = async (req, res) => {
 // Create new project
 const createProject = async (req, res) => {
   try {
-    const { title, description, status, assignedClients, assignedStaff } = req.body;
+    const {
+      title,
+      description,
+      status,
+      startDate,
+      endDate,
+      techStack,
+      assignedClients,
+      assignedStaff
+    } = req.body;
 
     if (!title) {
-      return res.status(400).json({ success: false, message: 'Title is required.' });
+      return res.status(400).json({
+        success: false,
+        message: 'Title is required.'
+      });
+    }
+
+    // Date validation
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date cannot be before start date.'
+      });
     }
 
     const project = await Project.create({
       title,
       description: description || '',
       status: status || 'New',
+      startDate: startDate || null,
+      endDate: endDate || null,
+      techStack: techStack || [],
       assignedClients: assignedClients || [],
       assignedStaff: assignedStaff || []
     });
@@ -76,26 +99,52 @@ const createProject = async (req, res) => {
       .populate('assignedClients', 'name email status')
       .populate('assignedStaff', 'name email status');
 
-    res.status(201).json({ 
-      success: true, 
-      message: 'Project created successfully.', 
-      data: populatedProject 
+    res.status(201).json({
+      success: true,
+      message: 'Project created successfully.',
+      data: populatedProject
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.',
+      error: error.message
+    });
   }
 };
+
 
 // Update project
 const updateProject = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, status, assignedClients, assignedStaff } = req.body;
+    const {
+      title,
+      description,
+      status,
+      startDate,
+      endDate,
+      techStack,
+      assignedClients,
+      assignedStaff
+    } = req.body;
+
+    // Date validation
+    if (startDate && endDate && new Date(endDate) < new Date(startDate)) {
+      return res.status(400).json({
+        success: false,
+        message: 'End date cannot be before start date.'
+      });
+    }
 
     const updateData = {};
+
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (status !== undefined) updateData.status = status;
+    if (startDate !== undefined) updateData.startDate = startDate || null;
+    if (endDate !== undefined) updateData.endDate = endDate || null;
+    if (techStack !== undefined) updateData.techStack = techStack;
     if (assignedClients !== undefined) updateData.assignedClients = assignedClients;
     if (assignedStaff !== undefined) updateData.assignedStaff = assignedStaff;
 
@@ -108,12 +157,23 @@ const updateProject = async (req, res) => {
       .populate('assignedStaff', 'name email status');
 
     if (!project) {
-      return res.status(404).json({ success: false, message: 'Project not found.' });
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found.'
+      });
     }
 
-    res.json({ success: true, message: 'Project updated successfully.', data: project });
+    res.json({
+      success: true,
+      message: 'Project updated successfully.',
+      data: project
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Server error.',
+      error: error.message
+    });
   }
 };
 
@@ -140,9 +200,9 @@ const updateProjectStatus = async (req, res) => {
     const { status } = req.body;
 
     if (!['New', 'In Progress', 'On Hold', 'Completed'].includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid status. Use New, In Progress, On Hold, or Completed.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status. Use New, In Progress, On Hold, or Completed.'
       });
     }
 
@@ -164,11 +224,11 @@ const updateProjectStatus = async (req, res) => {
   }
 };
 
-module.exports = { 
-  getProjects, 
-  getProject, 
-  createProject, 
-  updateProject, 
-  deleteProject, 
-  updateProjectStatus 
+module.exports = {
+  getProjects,
+  getProject,
+  createProject,
+  updateProject,
+  deleteProject,
+  updateProjectStatus
 };

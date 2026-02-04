@@ -2,7 +2,7 @@ const Staff = require('../models/Staff');
 
 const createStaff = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, phone, password } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
@@ -13,18 +13,19 @@ const createStaff = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Staff with this email already exists.' });
     }
 
-    const staff = await Staff.create({ name, email, password });
-    
+    const staff = await Staff.create({ name, email, phone, password });
+
     // Return staff without password
     const staffResponse = {
       _id: staff._id,
       name: staff.name,
       email: staff.email,
+      phone: staff.phone,
       status: staff.status,
       createdAt: staff.createdAt,
       updatedAt: staff.updatedAt
     };
-    
+
     res.status(201).json({ success: true, message: 'Staff created.', data: staffResponse });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
@@ -34,11 +35,11 @@ const createStaff = async (req, res) => {
 const updateStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email } = req.body;
+    const { name, email, phone } = req.body;
 
     const staff = await Staff.findByIdAndUpdate(
       id,
-      { name, email },
+      { name, email, phone },
       { new: true, runValidators: true }
     );
 

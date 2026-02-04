@@ -14,6 +14,10 @@ const staffSchema = new mongoose.Schema({
     lowercase: true,
     trim: true
   },
+  phone: {
+    type: String,
+    trim: true
+  },
   password: {
     type: String,
     required: true,
@@ -24,19 +28,19 @@ const staffSchema = new mongoose.Schema({
     enum: ['Active', 'Paused', 'Completed'],
     default: 'Active'
   }
-}, { 
-  timestamps: true 
+}, {
+  timestamps: true
 });
 
 // Hash password before saving
-staffSchema.pre('save', async function(next) {
+staffSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
 
 // Method to compare passwords
-staffSchema.methods.comparePassword = async function(candidatePassword) {
+staffSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 

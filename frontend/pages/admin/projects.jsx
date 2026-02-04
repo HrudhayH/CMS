@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
-import { 
-  getProjects, 
-  createProject, 
-  updateProject, 
-  deleteProject, 
+import {
+  getProjects,
+  createProject,
+  updateProject,
+  deleteProject,
   updateProjectStatus,
   getAllClients,
   getAllStaff
@@ -14,6 +14,16 @@ import { formatDate } from '../../utils/helpers';
 
 const ITEMS_PER_PAGE = 10;
 const PROJECT_STATUSES = ['New', 'In Progress', 'On Hold', 'Completed'];
+const TECH_STACK_OPTIONS = [
+  'React',
+  'Next.js',
+  'Node.js',
+  'Express',
+  'MongoDB',
+  'PostgreSQL',
+  'AWS',
+  'Docker'
+];
 
 // Icons
 const PlusIcon = () => (
@@ -53,27 +63,120 @@ export default function Projects() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isRequirementModalOpen, setIsRequirementModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
   const [deletingProject, setDeletingProject] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     status: 'New',
+    startDate: '',
+    endDate: '',
     assignedClients: [],
-    assignedStaff: []
+    assignedStaff: [],
+    techStack: []
   });
   const [formLoading, setFormLoading] = useState(false);
-  
+
   // Options for dropdowns
   const [clients, setClients] = useState([]);
   const [staff, setStaff] = useState([]);
+
+  // Helper function to format date as "DD MMM YYYY"
+  const formatDateShort = (dateString) => {
+    if (!dateString) return '—';
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleString('en-US', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day} ${month} ${year}`;
+  };
+
+  // Helper function to render timeline
+  const renderTimeline = (startDate, endDate) => {
+    const start = formatDateShort(startDate);
+    const end = formatDateShort(endDate);
+
+    if (start === '—' && end === '—') {
+      return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+    }
+
+    return (
+      <span style={{ fontSize: 'var(--font-size-sm, 14px)', color: 'var(--color-text-secondary)' }}>
+        {start} → {end}
+      </span>
+    );
+  };
+
+  // Helper function to render tech stack badges
+  const renderTechStack = (techStack) => {
+    if (!techStack || techStack.length === 0) {
+      return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+    }
+
+    const displayedTech = techStack.slice(0, 3);
+    const remaining = techStack.length - 3;
+
+    return (
+      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+        {displayedTech.map((tech, index) => (
+          <span
+            key={index}
+            style={{
+              display: 'inline-block',
+              padding: '2px 8px',
+              fontSize: 'var(--font-size-xs, 12px)',
+              fontWeight: 'var(--font-weight-medium, 500)',
+              color: 'var(--color-primary-700, #1e40af)',
+              backgroundColor: 'var(--color-primary-50, #eff6ff)',
+              borderRadius: 'var(--border-radius-sm, 4px)',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            {tech}
+          </span>
+        ))}
+        {remaining > 0 && (
+          <span
+            style={{
+              fontSize: 'var(--font-size-xs, 12px)',
+              color: 'var(--color-text-muted)',
+              fontWeight: 'var(--font-weight-medium, 500)'
+            }}
+          >
+            +{remaining}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  // Helper function to render staff list
+  const renderStaffList = (staff) => {
+    if (!staff || staff.length === 0) {
+      return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
+    }
+
+    const displayedStaff = staff.slice(0, 2);
+    const remaining = staff.length - 2;
+
+    return (
+      <span style={{ fontSize: 'var(--font-size-sm, 14px)', color: 'var(--color-text-secondary)' }}>
+        {displayedStaff.map(s => s.name).join(', ')}
+        {remaining > 0 && (
+          <span style={{ color: 'var(--color-text-muted)', fontWeight: 'var(--font-weight-medium, 500)' }}>
+            {' '}+{remaining}
+          </span>
+        )}
+      </span>
+    );
+  };
 
   const fetchProjects = useCallback(async (page = 1) => {
     try {
@@ -117,8 +220,11 @@ export default function Projects() {
       title: '',
       description: '',
       status: 'New',
+      startDate: '',
+      endDate: '',
       assignedClients: [],
-      assignedStaff: []
+      assignedStaff: [],
+      techStack: []
     });
     setIsModalOpen(true);
   };
@@ -129,8 +235,11 @@ export default function Projects() {
       title: project.title,
       description: project.description || '',
       status: project.status,
+      startDate: project.startDate || '',
+      endDate: project.endDate || '',
       assignedClients: project.assignedClients?.map(c => c._id) || [],
-      assignedStaff: project.assignedStaff?.map(s => s._id) || []
+      assignedStaff: project.assignedStaff?.map(s => s._id) || [],
+      techStack: project.techStack || []
     });
     setIsModalOpen(true);
   };
@@ -145,9 +254,24 @@ export default function Projects() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleMultiSelectChange = (e, field) => {
-    const options = Array.from(e.target.selectedOptions, option => option.value);
-    setFormData(prev => ({ ...prev, [field]: options }));
+  const handleCheckboxChange = (id, field) => {
+    setFormData(prev => {
+      const currentValues = prev[field];
+      const newValues = currentValues.includes(id)
+        ? currentValues.filter(itemId => itemId !== id)
+        : [...currentValues, id];
+      return { ...prev, [field]: newValues };
+    });
+  };
+
+  const handleTechStackChange = (tech) => {
+    setFormData(prev => {
+      const currentTechStack = prev.techStack;
+      const newTechStack = currentTechStack.includes(tech)
+        ? currentTechStack.filter(item => item !== tech)
+        : [...currentTechStack, tech];
+      return { ...prev, techStack: newTechStack };
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -174,7 +298,7 @@ export default function Projects() {
 
   const handleDelete = async () => {
     if (!deletingProject) return;
-    
+
     try {
       await deleteProject(deletingProject._id);
       setSuccess('Project deleted successfully');
@@ -199,17 +323,10 @@ export default function Projects() {
   const columns = [
     {
       key: 'title',
-      title: 'Title',
+      title: 'Project Title',
       render: (value) => (
-        <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{value}</span>
-      )
-    },
-    {
-      key: 'description',
-      title: 'Description',
-      render: (value) => (
-        <span className="text-muted text-truncate" style={{ maxWidth: '200px', display: 'block' }}>
-          {value || '-'}
+        <span style={{ fontWeight: 'var(--font-weight-semibold, 600)', fontSize: 'var(--font-size-sm, 14px)' }}>
+          {value}
         </span>
       )
     },
@@ -221,7 +338,12 @@ export default function Projects() {
           className="form-select"
           value={value}
           onChange={(e) => handleStatusChange(row._id, e.target.value)}
-          style={{ minWidth: '130px', padding: '4px 8px', fontSize: 'var(--font-size-xs)' }}
+          style={{
+            minWidth: '130px',
+            padding: '4px 8px',
+            fontSize: 'var(--font-size-xs, 12px)',
+            height: '32px'
+          }}
         >
           {PROJECT_STATUSES.map(status => (
             <option key={status} value={status}>{status}</option>
@@ -230,34 +352,26 @@ export default function Projects() {
       )
     },
     {
-      key: 'assignedClients',
-      title: 'Clients',
-      render: (value) => (
-        <span className="text-small text-muted">
-          {value?.length > 0 ? value.map(c => c.name).join(', ') : '-'}
-        </span>
-      )
+      key: 'timeline',
+      title: 'Timeline',
+      render: (_, row) => renderTimeline(row.startDate, row.endDate)
+    },
+    {
+      key: 'techStack',
+      title: 'Tech Stack',
+      render: (value) => renderTechStack(value)
     },
     {
       key: 'assignedStaff',
-      title: 'Staff',
-      render: (value) => (
-        <span className="text-small text-muted">
-          {value?.length > 0 ? value.map(s => s.name).join(', ') : '-'}
-        </span>
-      )
-    },
-    {
-      key: 'createdAt',
-      title: 'Created',
-      render: (value) => formatDate(value)
+      title: 'Assigned Staff',
+      render: (value) => renderStaffList(value)
     },
     {
       key: 'actions',
       title: 'Actions',
       align: 'right',
       render: (_, row) => (
-        <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
+        <div className="table-actions" style={{ justifyContent: 'flex-end', gap: '4px' }}>
           <button
             className="btn btn-ghost btn-icon-sm"
             onClick={() => setIsRequirementModalOpen(true)}
@@ -327,15 +441,15 @@ export default function Projects() {
         size="lg"
         footer={
           <>
-            <button 
-              className="btn btn-secondary" 
+            <button
+              className="btn btn-secondary"
               onClick={() => setIsModalOpen(false)}
               disabled={formLoading}
             >
               Cancel
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSubmit}
               disabled={formLoading}
             >
@@ -384,40 +498,180 @@ export default function Projects() {
             </select>
           </div>
 
+          {/* Start Date and End Date - Side by Side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4, 16px)' }}>
+            <div className="form-group">
+              <label className="form-label">Start Date</label>
+              <input
+                type="date"
+                name="startDate"
+                className="form-input"
+                value={formData.startDate}
+                onChange={handleFormChange}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">End Date</label>
+              <input
+                type="date"
+                name="endDate"
+                className="form-input"
+                value={formData.endDate}
+                onChange={handleFormChange}
+                min={formData.startDate || undefined}
+              />
+              {formData.startDate && formData.endDate && formData.endDate < formData.startDate && (
+                <p className="form-hint" style={{ color: 'var(--color-error-600)' }}>
+                  End date cannot be earlier than start date
+                </p>
+              )}
+            </div>
+          </div>
+
           <div className="form-group">
             <label className="form-label">Assigned Clients</label>
-            <select
-              multiple
-              className="form-select"
-              value={formData.assignedClients}
-              onChange={(e) => handleMultiSelectChange(e, 'assignedClients')}
-              style={{ minHeight: '100px' }}
+            <div
+              style={{
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: 'var(--spacing-2, 8px)'
+              }}
             >
-              {clients.map(client => (
-                <option key={client._id} value={client._id}>
-                  {client.name} ({client.email})
-                </option>
-              ))}
-            </select>
-            <p className="form-hint">Hold Ctrl/Cmd to select multiple clients</p>
+              {clients.length === 0 ? (
+                <p style={{ padding: 'var(--spacing-2, 8px)', color: 'var(--color-text-muted)', margin: 0 }}>
+                  No clients available
+                </p>
+              ) : (
+                clients.map(client => (
+                  <label
+                    key={client._id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 'var(--spacing-2, 8px)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--border-radius-sm, 4px)',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover, #f9fafb)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.assignedClients.includes(client._id)}
+                      onChange={() => handleCheckboxChange(client._id, 'assignedClients')}
+                      style={{ marginRight: 'var(--spacing-2, 8px)' }}
+                    />
+                    <span>
+                      {client.name} <span style={{ color: 'var(--color-text-muted)' }}>({client.email})</span>
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="form-hint">
+              {formData.assignedClients.length > 0
+                ? `${formData.assignedClients.length} client${formData.assignedClients.length !== 1 ? 's' : ''} selected`
+                : 'Select one or more clients'
+              }
+            </p>
           </div>
 
           <div className="form-group">
             <label className="form-label">Assigned Staff</label>
-            <select
-              multiple
-              className="form-select"
-              value={formData.assignedStaff}
-              onChange={(e) => handleMultiSelectChange(e, 'assignedStaff')}
-              style={{ minHeight: '100px' }}
+            <div
+              style={{
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: 'var(--spacing-2, 8px)'
+              }}
             >
-              {staff.map(member => (
-                <option key={member._id} value={member._id}>
-                  {member.name} ({member.email})
-                </option>
+              {staff.length === 0 ? (
+                <p style={{ padding: 'var(--spacing-2, 8px)', color: 'var(--color-text-muted)', margin: 0 }}>
+                  No staff available
+                </p>
+              ) : (
+                staff.map(member => (
+                  <label
+                    key={member._id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: 'var(--spacing-2, 8px)',
+                      cursor: 'pointer',
+                      borderRadius: 'var(--border-radius-sm, 4px)',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover, #f9fafb)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.assignedStaff.includes(member._id)}
+                      onChange={() => handleCheckboxChange(member._id, 'assignedStaff')}
+                      style={{ marginRight: 'var(--spacing-2, 8px)' }}
+                    />
+                    <span>
+                      {member.name} <span style={{ color: 'var(--color-text-muted)' }}>({member.email})</span>
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="form-hint">
+              {formData.assignedStaff.length > 0
+                ? `${formData.assignedStaff.length} staff member${formData.assignedStaff.length !== 1 ? 's' : ''} selected`
+                : 'Select one or more staff members'
+              }
+            </p>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Tech Stack</label>
+            <div
+              style={{
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                padding: 'var(--spacing-2, 8px)'
+              }}
+            >
+              {TECH_STACK_OPTIONS.map(tech => (
+                <label
+                  key={tech}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 'var(--spacing-2, 8px)',
+                    cursor: 'pointer',
+                    borderRadius: 'var(--border-radius-sm, 4px)',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover, #f9fafb)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.techStack.includes(tech)}
+                    onChange={() => handleTechStackChange(tech)}
+                    style={{ marginRight: 'var(--spacing-2, 8px)' }}
+                  />
+                  <span>{tech}</span>
+                </label>
               ))}
-            </select>
-            <p className="form-hint">Hold Ctrl/Cmd to select multiple staff members</p>
+            </div>
+            <p className="form-hint">
+              {formData.techStack.length > 0
+                ? `${formData.techStack.length} technolog${formData.techStack.length !== 1 ? 'ies' : 'y'} selected`
+                : 'Select one or more technologies used in this project'
+              }
+            </p>
           </div>
         </form>
       </Modal>
@@ -439,8 +693,8 @@ export default function Projects() {
         onClose={() => setIsRequirementModalOpen(false)}
         title="Requirement Document"
         footer={
-          <button 
-            className="btn btn-primary" 
+          <button
+            className="btn btn-primary"
             onClick={() => setIsRequirementModalOpen(false)}
           >
             Close
@@ -451,7 +705,7 @@ export default function Projects() {
           <FileIcon style={{ width: 48, height: 48 }} />
           <h3 className="empty-state-title">Feature Coming Soon</h3>
           <p className="empty-state-description" style={{ marginBottom: 0 }}>
-            The Requirement Document feature is currently under development. 
+            The Requirement Document feature is currently under development.
             Check back later for updates.
           </p>
         </div>
