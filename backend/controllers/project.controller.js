@@ -9,7 +9,7 @@ const getProjects = async (req, res) => {
 
     const [projects, total] = await Promise.all([
       Project.find()
-        .populate('assignedClients', 'name email status')
+        .populate('assignedClients', 'name email phone status')
         .populate('assignedStaff', 'name email status')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -42,7 +42,7 @@ const getProject = async (req, res) => {
     const { id } = req.params;
 
     const project = await Project.findById(id)
-      .populate('assignedClients', 'name email status')
+      .populate('assignedClients', 'name email phone status')
       .populate('assignedStaff', 'name email status');
 
     if (!project) {
@@ -96,7 +96,7 @@ const createProject = async (req, res) => {
     });
 
     const populatedProject = await Project.findById(project._id)
-      .populate('assignedClients', 'name email status')
+      .populate('assignedClients', 'name email phone status')
       .populate('assignedStaff', 'name email status');
 
     res.status(201).json({
@@ -153,7 +153,7 @@ const updateProject = async (req, res) => {
       updateData,
       { new: true, runValidators: true }
     )
-      .populate('assignedClients', 'name email status')
+      .populate('assignedClients', 'name email phone status')
       .populate('assignedStaff', 'name email status');
 
     if (!project) {
@@ -211,7 +211,7 @@ const updateProjectStatus = async (req, res) => {
       { status },
       { new: true, runValidators: true }
     )
-      .populate('assignedClients', 'name email status')
+      .populate('assignedClients', 'name email phone status')
       .populate('assignedStaff', 'name email status');
 
     if (!project) {

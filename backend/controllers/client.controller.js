@@ -2,10 +2,15 @@ const Client = require('../models/Client');
 
 const createClient = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, phone } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    }
+
+    // Basic phone validation (if provided)
+    if (phone && (typeof phone !== 'string' || phone.length > 20)) {
+      return res.status(400).json({ success: false, message: 'Phone number must be a string with max 20 characters.' });
     }
 
     const existingClient = await Client.findOne({ email });
@@ -13,13 +18,14 @@ const createClient = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Client with this email already exists.' });
     }
 
-    const client = await Client.create({ name, email, password });
+    const client = await Client.create({ name, email, password, phone: phone || '' });
     
     // Return client without password
     const clientResponse = {
       _id: client._id,
       name: client.name,
       email: client.email,
+      phone: client.phone,
       status: client.status,
       createdAt: client.createdAt,
       updatedAt: client.updatedAt
@@ -34,11 +40,21 @@ const createClient = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email } = req.body;
+    const { name, email, phone } = req.body;
+
+    // Basic phone validation (if provided)
+    if (phone !== undefined && phone !== null && (typeof phone !== 'string' || phone.length > 20)) {
+      return res.status(400).json({ success: false, message: 'Phone number must be a string with max 20 characters.' });
+    }
+
+    const updateData = { name, email };
+    if (phone !== undefined) {
+      updateData.phone = phone;
+    }
 
     const client = await Client.findByIdAndUpdate(
       id,
-      { name, email },
+      updateData,
       { new: true, runValidators: true }
     );
 

@@ -52,7 +52,8 @@ export default function Clients() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    phone: ''
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -80,7 +81,7 @@ export default function Clients() {
 
   const openAddModal = () => {
     setEditingClient(null);
-    setFormData({ name: '', email: '', password: '' });
+    setFormData({ name: '', email: '', password: '', phone: '' });
     setIsModalOpen(true);
   };
 
@@ -89,7 +90,8 @@ export default function Clients() {
     setFormData({
       name: client.name,
       email: client.email,
-      password: '' // Password is not shown during edit
+      password: '', // Password is not shown during edit
+      phone: client.phone || ''
     });
     setIsModalOpen(true);
   };
@@ -118,16 +120,16 @@ export default function Clients() {
 
     try {
       if (editingClient) {
-        // Only send name and email for updates (no password)
-        const { name, email } = formData;
-        await updateClient(editingClient._id, { name, email });
+        // Only send name, email, and phone for updates (no password)
+        const { name, email, phone } = formData;
+        await updateClient(editingClient._id, { name, email, phone });
         setSuccess('Client updated successfully');
       } else {
         await createClient(formData);
         setSuccess('Client created successfully');
       }
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '' }); // Clear form including password
+      setFormData({ name: '', email: '', password: '', phone: '' }); // Clear form including password
       fetchClients(pagination.page);
     } catch (err) {
       setError(err.message || 'Failed to save client');
@@ -304,6 +306,19 @@ export default function Clients() {
               onChange={handleFormChange}
               placeholder="Enter client email"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Phone Number</label>
+            <input
+              type="tel"
+              name="phone"
+              className="form-input"
+              value={formData.phone}
+              onChange={handleFormChange}
+              placeholder="Enter client phone number"
+              maxLength={20}
             />
           </div>
 

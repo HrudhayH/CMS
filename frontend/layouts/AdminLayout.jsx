@@ -64,11 +64,19 @@ const LogoutIcon = () => (
   </svg>
 );
 
+const PaymentsIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+    <line x1="1" y1="10" x2="23" y2="10" />
+  </svg>
+);
+
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: DashboardIcon },
   { href: '/admin/projects', label: 'Projects', icon: ProjectsIcon },
   { href: '/admin/clients', label: 'Clients', icon: ClientsIcon },
   { href: '/admin/staff', label: 'Staff', icon: StaffIcon },
+  { href: '/admin/payments', label: 'Payments', icon: PaymentsIcon },
 ];
 
 export default function AdminLayout({ children }) {

@@ -75,7 +75,7 @@ const getStaffProjects = async (req, res) => {
 
     const [projects, total] = await Promise.all([
       Project.find({ assignedStaff: staffId })
-        .populate('assignedClients', 'name email')
+        .populate('assignedClients', 'name email phone')
         .populate('assignedStaff', 'name email')
         .sort({ updatedAt: -1 })
         .skip(skip)
@@ -114,7 +114,7 @@ const getStaffProjectById = async (req, res) => {
       _id: id, 
       assignedStaff: staffId 
     })
-      .populate('assignedClients', 'name email')
+      .populate('assignedClients', 'name email phone')
       .populate('assignedStaff', 'name email')
       .populate('dailyUpdates.staff', 'name email')
       .lean();
@@ -181,7 +181,7 @@ const addProjectUpdate = async (req, res) => {
 
     // Return updated project with populated fields
     const updatedProject = await Project.findById(id)
-      .populate('assignedClients', 'name email')
+      .populate('assignedClients', 'name email phone')
       .populate('assignedStaff', 'name email')
       .populate('dailyUpdates.staff', 'name email')
       .lean();

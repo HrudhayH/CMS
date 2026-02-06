@@ -358,3 +358,85 @@ export async function getClientProjectUpdates(projectId, page = 1, limit = 5) {
 export async function getClientAllUpdates() {
   return fetchWithClientAuth('/client/updates/all');
 }
+
+// ============================================
+// Admin Payment APIs
+// ============================================
+export async function getPaymentPlans(page = 1, limit = 10) {
+  return fetchWithAuth(`/admin/payments?page=${page}&limit=${limit}`);
+}
+
+export async function getPaymentPlan(id) {
+  return fetchWithAuth(`/admin/payments/${id}`);
+}
+
+export async function createPaymentPlan(data) {
+  return fetchWithAuth('/admin/payments', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function addPaymentPhases(planId, phases) {
+  return fetchWithAuth(`/admin/payments/${planId}/phases`, {
+    method: 'POST',
+    body: JSON.stringify({ phases }),
+  });
+}
+
+export async function markPhaseAsPaid(planId, phaseId, paymentMode) {
+  return fetchWithAuth(`/admin/payments/${planId}/phases/${phaseId}/pay`, {
+    method: 'PATCH',
+    body: JSON.stringify({ paymentMode }),
+  });
+}
+
+export async function markFullPayment(planId, paymentMode) {
+  return fetchWithAuth(`/admin/payments/${planId}/pay`, {
+    method: 'PATCH',
+    body: JSON.stringify({ paymentMode }),
+  });
+}
+
+export async function getPaymentsByClient(clientId) {
+  return fetchWithAuth(`/admin/payments/client/${clientId}`);
+}
+
+export async function getPaymentByProject(projectId) {
+  return fetchWithAuth(`/admin/payments/project/${projectId}`);
+}
+
+export async function getPaymentHistory(page = 1, limit = 10) {
+  return fetchWithAuth(`/admin/payments/history?page=${page}&limit=${limit}`);
+}
+
+export async function updatePaymentPlan(planId, data) {
+  return fetchWithAuth(`/admin/payments/${planId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function updatePaymentPhase(planId, phaseId, data) {
+  return fetchWithAuth(`/admin/payments/${planId}/phases/${phaseId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deletePaymentPhase(planId, phaseId) {
+  return fetchWithAuth(`/admin/payments/${planId}/phases/${phaseId}`, {
+    method: 'DELETE',
+  });
+}
+
+// ============================================
+// Client Payment APIs
+// ============================================
+export async function getClientPaymentSummary() {
+  return fetchWithClientAuth('/client/payments/summary');
+}
+
+export async function getClientPaymentHistory(page = 1, limit = 10) {
+  return fetchWithClientAuth(`/client/payments/history?page=${page}&limit=${limit}`);
+}
