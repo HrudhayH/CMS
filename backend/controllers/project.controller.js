@@ -1,21 +1,35 @@
 const Project = require('../models/Project');
 
-// Get all projects with pagination
+// Get all projects with pagination, search, and filters
 const getProjects = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { search, status } = req.query;
+
+    // Build query conditions
+    const query = {};
+
+    // Search by title
+    if (search && search.trim()) {
+      query.title = new RegExp(search.trim(), 'i');
+    }
+
+    // Filter by status
+    if (status && ['New', 'In Progress', 'On Hold', 'Completed'].includes(status)) {
+      query.status = status;
+    }
 
     const [projects, total] = await Promise.all([
-      Project.find()
+      Project.find(query)
         .populate('assignedClients', 'name email phone status')
         .populate('assignedStaff', 'name email status')
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Project.countDocuments()
+      Project.countDocuments(query)
     ]);
 
     const totalPages = Math.ceil(total / limit);

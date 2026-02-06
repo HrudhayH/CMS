@@ -187,8 +187,11 @@ export async function getDashboardStats() {
 // ============================================
 // Project APIs
 // ============================================
-export async function getProjects(page = 1, limit = 10) {
-  return fetchWithAuth(`/admin/projects?page=${page}&limit=${limit}`);
+export async function getProjects(page = 1, limit = 10, search = '', status = '') {
+  const params = new URLSearchParams({ page, limit });
+  if (search) params.append('search', search);
+  if (status) params.append('status', status);
+  return fetchWithAuth(`/admin/projects?${params.toString()}`);
 }
 
 export async function getProject(id) {
@@ -225,8 +228,11 @@ export async function updateProjectStatus(id, status) {
 // ============================================
 // Client APIs
 // ============================================
-export async function getClients(page = 1, limit = 10) {
-  return fetchWithAuth(`/admin/clients?page=${page}&limit=${limit}`);
+export async function getClients(page = 1, limit = 10, search = '', status = '') {
+  const params = new URLSearchParams({ page, limit });
+  if (search) params.append('search', search);
+  if (status) params.append('status', status);
+  return fetchWithAuth(`/admin/clients?${params.toString()}`);
 }
 
 export async function getAllClients() {
@@ -267,8 +273,11 @@ export async function updateClientStatus(id, status) {
 // ============================================
 // Staff APIs
 // ============================================
-export async function getStaff(page = 1, limit = 10) {
-  return fetchWithAuth(`/admin/staff?page=${page}&limit=${limit}`);
+export async function getStaff(page = 1, limit = 10, search = '', status = '') {
+  const params = new URLSearchParams({ page, limit });
+  if (search) params.append('search', search);
+  if (status) params.append('status', status);
+  return fetchWithAuth(`/admin/staff?${params.toString()}`);
 }
 
 export async function getAllStaff() {
@@ -376,8 +385,12 @@ export async function addStaffUpdateReply(projectId, updateId, message) {
 // ============================================
 // Admin Payment APIs
 // ============================================
-export async function getPaymentPlans(page = 1, limit = 10) {
-  return fetchWithAuth(`/admin/payments?page=${page}&limit=${limit}`);
+export async function getPaymentPlans(page = 1, limit = 10, search = '', paymentType = '', status = '') {
+  const params = new URLSearchParams({ page, limit });
+  if (search) params.append('search', search);
+  if (paymentType) params.append('paymentType', paymentType);
+  if (status) params.append('status', status);
+  return fetchWithAuth(`/admin/payments?${params.toString()}`);
 }
 
 export async function getPaymentPlan(id) {
@@ -420,8 +433,11 @@ export async function getPaymentByProject(projectId) {
   return fetchWithAuth(`/admin/payments/project/${projectId}`);
 }
 
-export async function getPaymentHistory(page = 1, limit = 10) {
-  return fetchWithAuth(`/admin/payments/history?page=${page}&limit=${limit}`);
+export async function getPaymentHistory(page = 1, limit = 10, search = '', paymentMode = '') {
+  const params = new URLSearchParams({ page, limit });
+  if (search) params.append('search', search);
+  if (paymentMode) params.append('paymentMode', paymentMode);
+  return fetchWithAuth(`/admin/payments/history?${params.toString()}`);
 }
 
 export async function updatePaymentPlan(planId, data) {

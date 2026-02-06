@@ -238,10 +238,10 @@ function ClientPayments() {
       </div>
 
       {error && (
-        <div style={{ 
-          padding: '12px 16px', 
-          background: '#fee2e2', 
-          color: '#b91c1c', 
+        <div style={{
+          padding: '12px 16px',
+          background: '#fee2e2',
+          color: '#b91c1c',
           borderRadius: '8px',
           marginBottom: '16px'
         }}>
@@ -274,8 +274,8 @@ function ClientPayments() {
         </div>
       ) : (
         plans.map(plan => {
-          const progressPercent = plan.totalAmount > 0 
-            ? Math.round((plan.totalPaidAmount / plan.totalAmount) * 100) 
+          const progressPercent = plan.totalAmount > 0
+            ? Math.round((plan.totalPaidAmount / plan.totalAmount) * 100)
             : 0;
           const statusStyle = getStatusStyle(plan.status);
 
@@ -283,7 +283,7 @@ function ClientPayments() {
             <div key={plan._id} className="payment-card">
               <div className="payment-card-header">
                 <span className="payment-card-title">{plan.project?.title}</span>
-                <span 
+                <span
                   className="status-badge"
                   style={{
                     backgroundColor: statusStyle.bg,
@@ -309,13 +309,13 @@ function ClientPayments() {
                   <div className="payment-stat">
                     <div className="payment-stat-label">Pending</div>
                     <div className="payment-stat-value" style={{ color: '#92400e' }}>
-                      {formatCurrency(plan.remainingAmount)}
+                      {formatCurrency(plan.remainingAmount ?? (plan.totalAmount - plan.totalPaidAmount))}
                     </div>
                   </div>
                 </div>
 
                 <div className="progress-bar">
-                  <div 
+                  <div
                     className="progress-fill"
                     style={{
                       width: `${progressPercent}%`,
@@ -341,7 +341,7 @@ function ClientPayments() {
                           <div>
                             <div className="phase-name">{phase.phaseName}</div>
                             <div className="phase-date">
-                              {phase.status === 'PAID' 
+                              {phase.status === 'PAID'
                                 ? `Paid on ${formatDate(phase.paidDate)} via ${phase.paymentMode}`
                                 : phase.dueDate ? `Due: ${formatDate(phase.dueDate)}` : 'No due date'
                               }
@@ -360,7 +360,7 @@ function ClientPayments() {
       )}
 
       {plans.length > 0 && (
-        <div 
+        <div
           className="history-link"
           onClick={() => router.push('/client/payments/history')}
         >

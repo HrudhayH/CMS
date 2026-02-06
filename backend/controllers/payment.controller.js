@@ -61,23 +61,97 @@ const createPaymentPlan = async (req, res) => {
   }
 };
 
-// Get all payment plans (paginated)
+// Get all payment plans (paginated with search and filters)
 const getPaymentPlans = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { search, paymentType, status } = req.query;
 
-    const [plans, total] = await Promise.all([
-      PaymentPlan.find()
-        .populate('client', 'name email')
-        .populate('project', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean({ virtuals: true }),
-      PaymentPlan.countDocuments()
-    ]);
+    // Build match conditions
+    const matchStage = {};
+
+    // Filter by paymentType
+    if (paymentType && ['ONE_TIME', 'PHASE_WISE'].includes(paymentType)) {
+      matchStage.paymentType = paymentType;
+    }
+
+    // Filter by status
+    if (status && ['PENDING', 'PARTIAL', 'PAID'].includes(status)) {
+      matchStage.status = status;
+    }
+
+    // Use aggregation pipeline for search across populated fields
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: { path: '$client', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'project',
+          foreignField: '_id',
+          as: 'project'
+        }
+      },
+      { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } }
+    ];
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'client.name': searchRegex },
+            { 'project.title': searchRegex }
+          ]
+        }
+      });
+    }
+
+    // Add remaining amount virtual
+    pipeline.push({
+      $addFields: {
+        remainingAmount: { $subtract: ['$totalAmount', '$totalPaidAmount'] }
+      }
+    });
+
+    // Get total count
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await PaymentPlan.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination and projection
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          client: { _id: 1, name: 1, email: 1 },
+          project: { _id: 1, title: 1 },
+          totalAmount: 1,
+          totalPaidAmount: 1,
+          remainingAmount: 1,
+          paymentType: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    );
+
+    const plans = await PaymentPlan.aggregate(pipeline);
 
     res.json({
       success: true,
@@ -251,23 +325,83 @@ const markFullPayment = async (req, res) => {
   }
 };
 
-// Get global payment history (paginated)
+// Get global payment history (paginated with search and filters)
 const getPaymentHistory = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { search, paymentMode } = req.query;
 
-    const [history, total] = await Promise.all([
-      PaymentHistory.find()
-        .populate('client', 'name email')
-        .populate('project', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      PaymentHistory.countDocuments()
-    ]);
+    // Build match conditions
+    const matchStage = {};
+
+    // Filter by paymentMode
+    if (paymentMode && ['UPI', 'BANK', 'CASH', 'CHEQUE'].includes(paymentMode)) {
+      matchStage.paymentMode = paymentMode;
+    }
+
+    // Use aggregation pipeline for search across populated fields
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: { path: '$client', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'project',
+          foreignField: '_id',
+          as: 'project'
+        }
+      },
+      { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } }
+    ];
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'client.name': searchRegex },
+            { 'project.title': searchRegex }
+          ]
+        }
+      });
+    }
+
+    // Get total count
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await PaymentHistory.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination and projection
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          client: { _id: 1, name: 1, email: 1 },
+          project: { _id: 1, title: 1 },
+          phaseName: 1,
+          amount: 1,
+          paymentMode: 1,
+          paidDate: 1,
+          createdAt: 1
+        }
+      }
+    );
+
+    const history = await PaymentHistory.aggregate(pipeline);
 
     res.json({
       success: true,
@@ -347,9 +481,9 @@ const updatePaymentPlan = async (req, res) => {
     if (paymentType && paymentType !== plan.paymentType) {
       if (plan.paymentType === 'PHASE_WISE' && paymentType === 'ONE_TIME') {
         if (hasPaidPhases) {
-          return res.status(400).json({ 
-            success: false, 
-            message: 'Cannot switch to ONE_TIME when phases are already paid.' 
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot switch to ONE_TIME when phases are already paid.'
           });
         }
         // Delete all pending phases when switching to ONE_TIME
@@ -357,9 +491,9 @@ const updatePaymentPlan = async (req, res) => {
       }
       if (plan.paymentType === 'ONE_TIME' && paymentType === 'PHASE_WISE') {
         if (plan.status === 'PAID') {
-          return res.status(400).json({ 
-            success: false, 
-            message: 'Cannot switch to PHASE_WISE when payment is already completed.' 
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot switch to PHASE_WISE when payment is already completed.'
           });
         }
       }
@@ -369,9 +503,9 @@ const updatePaymentPlan = async (req, res) => {
     // Update total amount
     if (totalAmount !== undefined && totalAmount !== plan.totalAmount) {
       if (totalAmount < plan.totalPaidAmount) {
-        return res.status(400).json({ 
-          success: false, 
-          message: `Total amount cannot be less than already paid amount (${plan.totalPaidAmount}).` 
+        return res.status(400).json({
+          success: false,
+          message: `Total amount cannot be less than already paid amount (${plan.totalPaidAmount}).`
         });
       }
       plan.totalAmount = totalAmount;

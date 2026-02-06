@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { Modal, Alert } from '../../../components';
-import { 
-  getPaymentPlan, 
-  markPhaseAsPaid, 
-  markFullPayment, 
+import {
+  getPaymentPlan,
+  markPhaseAsPaid,
+  markFullPayment,
   addPaymentPhases,
   updatePaymentPlan,
   updatePaymentPhase,
@@ -53,12 +53,12 @@ const EditIcon = () => (
 export default function PaymentDetail() {
   const router = useRouter();
   const { id } = router.query;
-  
+
   const [plan, setPlan] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [isPhaseModalOpen, setIsPhaseModalOpen] = useState(false);
   const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false);
@@ -66,15 +66,15 @@ export default function PaymentDetail() {
   const [selectedPhase, setSelectedPhase] = useState(null);
   const [paymentMode, setPaymentMode] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
-  
+
   const [newPhases, setNewPhases] = useState([]);
-  
+
   // Edit plan state
   const [editPlanData, setEditPlanData] = useState({ totalAmount: '', paymentType: '' });
-  
+
   // Edit phase state
-  const [editPhaseData, setEditPhaseData] = useState({ 
-    phaseName: '', amountType: '', amountValue: '', dueDate: '' 
+  const [editPhaseData, setEditPhaseData] = useState({
+    phaseName: '', amountType: '', amountValue: '', dueDate: ''
   });
 
   const fetchPlan = useCallback(async () => {
@@ -166,7 +166,7 @@ export default function PaymentDetail() {
   };
 
   const handleNewPhaseChange = (index, field, value) => {
-    setNewPhases(prev => prev.map((phase, i) => 
+    setNewPhases(prev => prev.map((phase, i) =>
       i === index ? { ...phase, [field]: value } : phase
     ));
   };
@@ -261,7 +261,7 @@ export default function PaymentDetail() {
       setError('Cannot delete a paid phase');
       return;
     }
-    
+
     if (!confirm(`Are you sure you want to delete phase "${phase.phaseName}"?`)) return;
 
     setActionLoading(true);
@@ -306,15 +306,15 @@ export default function PaymentDetail() {
     );
   }
 
-  const progressPercent = plan.totalAmount > 0 
-    ? Math.round((plan.totalPaidAmount / plan.totalAmount) * 100) 
+  const progressPercent = plan.totalAmount > 0
+    ? Math.round((plan.totalPaidAmount / plan.totalAmount) * 100)
     : 0;
 
   return (
     <AdminLayout>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
+          <button
             className="btn btn-secondary btn-icon"
             onClick={() => router.push('/admin/payments')}
           >
@@ -337,9 +337,9 @@ export default function PaymentDetail() {
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
       {/* Summary Card */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
         gap: '16px',
         marginBottom: '24px'
       }}>
@@ -367,7 +367,7 @@ export default function PaymentDetail() {
           <div style={{ padding: '20px' }}>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '4px' }}>Pending</p>
             <p style={{ fontSize: '18px', fontWeight: '600', color: 'var(--color-warning)' }}>
-              {formatCurrency(plan.remainingAmount)}
+              {formatCurrency(plan.remainingAmount ?? (plan.totalAmount - plan.totalPaidAmount))}
             </p>
           </div>
         </div>
@@ -380,9 +380,9 @@ export default function PaymentDetail() {
             <span>Payment Progress</span>
             <span>{progressPercent}%</span>
           </div>
-          <div style={{ 
-            height: '8px', 
-            backgroundColor: 'var(--bg-tertiary)', 
+          <div style={{
+            height: '8px',
+            backgroundColor: 'var(--bg-tertiary)',
             borderRadius: '4px',
             overflow: 'hidden'
           }}>
@@ -420,8 +420,8 @@ export default function PaymentDetail() {
       {/* Phases */}
       {plan.paymentType === 'PHASE_WISE' && (
         <div className="card">
-          <div style={{ 
-            padding: '16px 20px', 
+          <div style={{
+            padding: '16px 20px',
             borderBottom: '1px solid var(--border-color)',
             display: 'flex',
             justifyContent: 'space-between',
@@ -433,11 +433,11 @@ export default function PaymentDetail() {
               <span>Add Phase</span>
             </button>
           </div>
-          
+
           {plan.phases && plan.phases.length > 0 ? (
             <div style={{ padding: '0' }}>
               {plan.phases.map((phase, index) => (
-                <div 
+                <div
                   key={phase._id}
                   style={{
                     padding: '16px 20px',
@@ -474,21 +474,21 @@ export default function PaymentDetail() {
                   <div style={{ display: 'flex', gap: '8px' }}>
                     {phase.status !== 'PAID' && (
                       <>
-                        <button 
+                        <button
                           className="btn btn-secondary btn-sm btn-icon"
                           onClick={() => openEditPhaseModal(phase)}
                           title="Edit Phase"
                         >
                           <EditIcon />
                         </button>
-                        <button 
+                        <button
                           className="btn btn-danger btn-sm btn-icon"
                           onClick={() => handleDeletePhase(phase)}
                           title="Delete Phase"
                         >
                           <TrashIcon />
                         </button>
-                        <button 
+                        <button
                           className="btn btn-primary btn-sm"
                           onClick={() => openPayModal(phase)}
                         >
@@ -519,7 +519,7 @@ export default function PaymentDetail() {
           <p style={{ marginBottom: '16px' }}>
             Amount: <strong>{formatCurrency(selectedPhase?.calculatedAmount || plan.totalAmount)}</strong>
           </p>
-          
+
           <label className="form-label">Payment Mode</label>
           <select
             className="form-input"
@@ -538,9 +538,9 @@ export default function PaymentDetail() {
           <button type="button" className="btn btn-secondary" onClick={() => setIsPayModalOpen(false)}>
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={handlePayment}
             disabled={actionLoading || !paymentMode}
           >
@@ -562,24 +562,24 @@ export default function PaymentDetail() {
         </div>
 
         {newPhases.map((phase, index) => (
-          <div key={index} style={{ 
-            padding: '12px', 
-            border: '1px solid var(--border-color)', 
-            borderRadius: '8px', 
+          <div key={index} style={{
+            padding: '12px',
+            border: '1px solid var(--border-color)',
+            borderRadius: '8px',
             marginBottom: '12px',
             background: 'var(--bg-secondary)'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
               <strong>Phase {index + 1}</strong>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="btn btn-icon btn-danger btn-sm"
                 onClick={() => removeNewPhase(index)}
               >
                 <TrashIcon />
               </button>
             </div>
-            
+
             <div style={{ display: 'grid', gap: '8px' }}>
               <input
                 type="text"
@@ -628,9 +628,9 @@ export default function PaymentDetail() {
           <button type="button" className="btn btn-secondary" onClick={() => { setIsPhaseModalOpen(false); setNewPhases([]); }}>
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={handleAddPhases}
             disabled={actionLoading || newPhases.length === 0}
           >
@@ -669,8 +669,8 @@ export default function PaymentDetail() {
             onChange={(e) => setEditPlanData(prev => ({ ...prev, paymentType: e.target.value }))}
           >
             {PAYMENT_TYPES.map(type => {
-              const disabled = (type === 'ONE_TIME' && !canSwitchToOneTime) || 
-                               (type === 'PHASE_WISE' && !canSwitchToPhaseWise && plan?.paymentType === 'ONE_TIME');
+              const disabled = (type === 'ONE_TIME' && !canSwitchToOneTime) ||
+                (type === 'PHASE_WISE' && !canSwitchToPhaseWise && plan?.paymentType === 'ONE_TIME');
               return (
                 <option key={type} value={type} disabled={disabled}>
                   {type.replace('_', ' ')} {disabled ? '(locked)' : ''}
@@ -689,9 +689,9 @@ export default function PaymentDetail() {
           <button type="button" className="btn btn-secondary" onClick={() => setIsEditPlanModalOpen(false)}>
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={handleEditPlan}
             disabled={actionLoading}
           >
@@ -756,9 +756,9 @@ export default function PaymentDetail() {
           <button type="button" className="btn btn-secondary" onClick={() => { setIsEditPhaseModalOpen(false); setSelectedPhase(null); }}>
             Cancel
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={handleEditPhase}
             disabled={actionLoading}
           >

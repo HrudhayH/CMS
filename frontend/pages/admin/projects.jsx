@@ -82,6 +82,10 @@ export default function Projects() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -279,10 +283,10 @@ export default function Projects() {
     return colors[status] || colors['New'];
   };
 
-  const fetchProjects = useCallback(async (page = 1) => {
+  const fetchProjects = useCallback(async (page = 1, search = '', status = '') => {
     try {
       setLoading(true);
-      const response = await getProjects(page, ITEMS_PER_PAGE);
+      const response = await getProjects(page, ITEMS_PER_PAGE, search, status);
       setProjects(response.data);
       setPagination(response.pagination);
       setError('');
@@ -307,12 +311,12 @@ export default function Projects() {
   }, []);
 
   useEffect(() => {
-    fetchProjects();
+    fetchProjects(1, searchQuery, statusFilter);
     fetchOptions();
-  }, [fetchProjects, fetchOptions]);
+  }, [searchQuery, statusFilter, fetchProjects, fetchOptions]);
 
   const handlePageChange = (page) => {
-    fetchProjects(page);
+    fetchProjects(page, searchQuery, statusFilter);
   };
 
   const openAddModal = () => {
@@ -618,6 +622,8 @@ export default function Projects() {
             <input
               type="text"
               placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
                 padding: '10px 12px 10px 40px',
@@ -661,6 +667,8 @@ export default function Projects() {
 
         <div style={{ display: 'flex', gap: 'var(--spacing-2, 8px)', alignItems: 'center' }}>
           <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             style={{
               padding: '10px 12px',
               fontSize: 'var(--font-size-sm, 14px)',

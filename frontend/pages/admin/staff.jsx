@@ -72,7 +72,6 @@ const XIcon = () => (
 
 export default function Staff() {
   const [staff, setStaff] = useState([]);
-  const [filteredStaff, setFilteredStaff] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,12 +129,11 @@ export default function Staff() {
     return colors[index];
   };
 
-  const fetchStaff = useCallback(async (page = 1) => {
+  const fetchStaff = useCallback(async (page = 1, search = '', status = '') => {
     try {
       setLoading(true);
-      const response = await getStaff(page, ITEMS_PER_PAGE);
+      const response = await getStaff(page, ITEMS_PER_PAGE, search, status);
       setStaff(response.data);
-      setFilteredStaff(response.data);
       setPagination(response.pagination);
       setError('');
     } catch (err) {
@@ -146,34 +144,11 @@ export default function Staff() {
   }, []);
 
   useEffect(() => {
-    fetchStaff();
-  }, [fetchStaff]);
-
-  // Apply filters
-  useEffect(() => {
-    let filtered = [...staff];
-
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        member =>
-          member.name.toLowerCase().includes(query) ||
-          member.email.toLowerCase().includes(query) ||
-          (member.phone && member.phone.includes(query))
-      );
-    }
-
-    // Apply status filter
-    if (statusFilter) {
-      filtered = filtered.filter(member => member.status === statusFilter);
-    }
-
-    setFilteredStaff(filtered);
-  }, [searchQuery, statusFilter, staff]);
+    fetchStaff(1, searchQuery, statusFilter);
+  }, [searchQuery, statusFilter, fetchStaff]);
 
   const handlePageChange = (page) => {
-    fetchStaff(page);
+    fetchStaff(page, searchQuery, statusFilter);
   };
 
   const clearFilters = () => {
@@ -641,7 +616,7 @@ export default function Staff() {
       }}>
         <DataTable
           columns={columns}
-          data={filteredStaff}
+          data={staff}
           loading={loading}
           emptyMessage="No staff found"
           emptyDescription="Get started by adding your first staff member."

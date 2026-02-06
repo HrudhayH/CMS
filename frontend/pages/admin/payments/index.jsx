@@ -2,8 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, Alert } from '../../../components';
-import { 
-  getPaymentPlans, 
+import {
+  getPaymentPlans,
   createPaymentPlan,
   getAllClients,
   getProjects
@@ -41,12 +41,17 @@ export default function Payments() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [clients, setClients] = useState([]);
   const [projects, setProjects] = useState([]);
   const [formLoading, setFormLoading] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     clientId: '',
     projectId: '',
@@ -55,10 +60,10 @@ export default function Payments() {
     phases: []
   });
 
-  const fetchPlans = useCallback(async (page = 1) => {
+  const fetchPlans = useCallback(async (page = 1, search = '', paymentType = '', status = '') => {
     try {
       setLoading(true);
-      const response = await getPaymentPlans(page, ITEMS_PER_PAGE);
+      const response = await getPaymentPlans(page, ITEMS_PER_PAGE, search, paymentType, status);
       setPlans(response.data);
       setPagination(response.pagination);
       setError('');
@@ -83,12 +88,12 @@ export default function Payments() {
   };
 
   useEffect(() => {
-    fetchPlans();
+    fetchPlans(1, searchQuery, typeFilter, statusFilter);
     fetchDropdownData();
-  }, [fetchPlans]);
+  }, [searchQuery, typeFilter, statusFilter, fetchPlans]);
 
   const handlePageChange = (page) => {
-    fetchPlans(page);
+    fetchPlans(page, searchQuery, typeFilter, statusFilter);
   };
 
   const openAddModal = () => {
@@ -124,7 +129,7 @@ export default function Payments() {
   const handlePhaseChange = (index, field, value) => {
     setFormData(prev => ({
       ...prev,
-      phases: prev.phases.map((phase, i) => 
+      phases: prev.phases.map((phase, i) =>
         i === index ? { ...phase, [field]: value } : phase
       )
     }));
@@ -213,7 +218,7 @@ export default function Payments() {
       width: '100px',
       render: (_, row) => (
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button 
+          <button
             className="btn btn-icon btn-secondary"
             onClick={() => router.push(`/admin/payments/${row._id}`)}
             title="View Details"
@@ -226,7 +231,7 @@ export default function Payments() {
   ];
 
   // Filter projects by selected client
-  const filteredProjects = formData.clientId 
+  const filteredProjects = formData.clientId
     ? projects.filter(p => p.assignedClients?.some(c => c._id === formData.clientId))
     : projects;
 
@@ -245,6 +250,92 @@ export default function Payments() {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+
+      {/* Search and Filter Bar */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: 'var(--spacing-4, 16px)',
+        borderRadius: 'var(--border-radius-lg, 8px)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        marginBottom: 'var(--spacing-4, 16px)',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        gap: 'var(--spacing-3, 12px)',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: '1', minWidth: '200px' }}>
+          <input
+            type="text"
+            placeholder="Search by client or project..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              outline: 'none'
+            }}
+          />
+        </div>
+
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            fontSize: 'var(--font-size-sm, 14px)',
+            border: '1px solid var(--color-border, #e5e7eb)',
+            borderRadius: 'var(--border-radius-md, 6px)',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            minWidth: '130px'
+          }}
+        >
+          <option value="">All Types</option>
+          <option value="ONE_TIME">One Time</option>
+          <option value="PHASE_WISE">Phase Wise</option>
+        </select>
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            fontSize: 'var(--font-size-sm, 14px)',
+            border: '1px solid var(--color-border, #e5e7eb)',
+            borderRadius: 'var(--border-radius-md, 6px)',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            minWidth: '130px'
+          }}
+        >
+          <option value="">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="PARTIAL">Partial</option>
+          <option value="PAID">Paid</option>
+        </select>
+
+        {(searchQuery || typeFilter || statusFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setTypeFilter(''); setStatusFilter(''); }}
+            style={{
+              padding: '10px 16px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              fontWeight: '500',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       <DataTable
         columns={columns}
@@ -337,26 +428,26 @@ export default function Payments() {
                   + Add Phase
                 </button>
               </div>
-              
+
               {formData.phases.map((phase, index) => (
-                <div key={index} style={{ 
-                  padding: '12px', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: '8px', 
+                <div key={index} style={{
+                  padding: '12px',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
                   marginBottom: '12px',
                   background: 'var(--bg-secondary)'
                 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <strong>Phase {index + 1}</strong>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       className="btn btn-icon btn-danger btn-sm"
                       onClick={() => removePhase(index)}
                     >
                       <TrashIcon />
                     </button>
                   </div>
-                  
+
                   <div style={{ display: 'grid', gap: '8px' }}>
                     <input
                       type="text"

@@ -19,7 +19,7 @@ const createClient = async (req, res) => {
     }
 
     const client = await Client.create({ name, email, password, phone: phone || '' });
-    
+
     // Return client without password
     const clientResponse = {
       _id: client._id,
@@ -30,7 +30,7 @@ const createClient = async (req, res) => {
       createdAt: client.createdAt,
       updatedAt: client.updatedAt
     };
-    
+
     res.status(201).json({ success: true, message: 'Client created.', data: clientResponse });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
@@ -108,20 +108,39 @@ const updateClientStatus = async (req, res) => {
   }
 };
 
-// Get clients with pagination
+// Get clients with pagination, search, and filters
 const getClients = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { search, status } = req.query;
+
+    // Build query conditions
+    const query = {};
+
+    // Search across name, email, phone
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex },
+        { phone: searchRegex }
+      ];
+    }
+
+    // Filter by status
+    if (status && ['Active', 'Paused', 'Completed'].includes(status)) {
+      query.status = status;
+    }
 
     const [clients, total] = await Promise.all([
-      Client.find()
+      Client.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Client.countDocuments()
+      Client.countDocuments(query)
     ]);
 
     const totalPages = Math.ceil(total / limit);

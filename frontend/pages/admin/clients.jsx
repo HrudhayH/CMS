@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
-import { 
-  getClients, 
-  createClient, 
-  updateClient, 
-  deleteClient, 
-  updateClientStatus 
+import {
+  getClients,
+  createClient,
+  updateClient,
+  deleteClient,
+  updateClientStatus
 } from '../../services/api';
 import { formatDate } from '../../utils/helpers';
 
@@ -41,13 +41,17 @@ export default function Clients() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingClient, setEditingClient] = useState(null);
   const [deletingClient, setDeletingClient] = useState(null);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -57,10 +61,10 @@ export default function Clients() {
   });
   const [formLoading, setFormLoading] = useState(false);
 
-  const fetchClients = useCallback(async (page = 1) => {
+  const fetchClients = useCallback(async (page = 1, search = '', status = '') => {
     try {
       setLoading(true);
-      const response = await getClients(page, ITEMS_PER_PAGE);
+      const response = await getClients(page, ITEMS_PER_PAGE, search, status);
       setClients(response.data);
       setPagination(response.pagination);
       setError('');
@@ -72,11 +76,11 @@ export default function Clients() {
   }, []);
 
   useEffect(() => {
-    fetchClients();
-  }, [fetchClients]);
+    fetchClients(1, searchQuery, statusFilter);
+  }, [searchQuery, statusFilter, fetchClients]);
 
   const handlePageChange = (page) => {
-    fetchClients(page);
+    fetchClients(page, searchQuery, statusFilter);
   };
 
   const openAddModal = () => {
@@ -140,7 +144,7 @@ export default function Clients() {
 
   const handleDelete = async () => {
     if (!deletingClient) return;
-    
+
     try {
       await deleteClient(deletingClient._id);
       setSuccess('Client deleted successfully');
@@ -242,6 +246,98 @@ export default function Clients() {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
+      {/* Search and Filter Bar */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: 'var(--spacing-4, 16px)',
+        borderRadius: 'var(--border-radius-lg, 8px)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        marginBottom: 'var(--spacing-4, 16px)',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        gap: 'var(--spacing-3, 12px)',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: '1', minWidth: '250px' }}>
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Search by name, email, or phone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 12px 10px 40px',
+                fontSize: 'var(--font-size-sm, 14px)',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                outline: 'none',
+                transition: 'all 0.2s ease'
+              }}
+            />
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: 'var(--color-text-muted)'
+              }}
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.35-4.35" />
+            </svg>
+          </div>
+        </div>
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            fontSize: 'var(--font-size-sm, 14px)',
+            border: '1px solid var(--color-border, #e5e7eb)',
+            borderRadius: 'var(--border-radius-md, 6px)',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            outline: 'none',
+            minWidth: '140px'
+          }}
+        >
+          <option value="">All Statuses</option>
+          {CLIENT_STATUSES.map(status => (
+            <option key={status} value={status}>{status}</option>
+          ))}
+        </select>
+
+        {(searchQuery || statusFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setStatusFilter(''); }}
+            style={{
+              padding: '10px 16px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              fontWeight: '500',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       <DataTable
         columns={columns}
         data={clients}
@@ -265,15 +361,15 @@ export default function Clients() {
         title={editingClient ? 'Edit Client' : 'Add Client'}
         footer={
           <>
-            <button 
-              className="btn btn-secondary" 
+            <button
+              className="btn btn-secondary"
               onClick={() => setIsModalOpen(false)}
               disabled={formLoading}
             >
               Cancel
             </button>
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleSubmit}
               disabled={formLoading}
             >

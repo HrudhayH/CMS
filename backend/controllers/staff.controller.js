@@ -93,20 +93,38 @@ const updateStaffStatus = async (req, res) => {
   }
 };
 
-// Get staff with pagination
+// Get staff with pagination, search, and filters
 const getStaff = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
+    const { search, status } = req.query;
+
+    // Build query conditions
+    const query = {};
+
+    // Search across name, email
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      query.$or = [
+        { name: searchRegex },
+        { email: searchRegex }
+      ];
+    }
+
+    // Filter by status
+    if (status && ['Active', 'Inactive'].includes(status)) {
+      query.status = status;
+    }
 
     const [staff, total] = await Promise.all([
-      Staff.find()
+      Staff.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
         .lean(),
-      Staff.countDocuments()
+      Staff.countDocuments(query)
     ]);
 
     const totalPages = Math.ceil(total / limit);

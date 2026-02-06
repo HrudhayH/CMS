@@ -21,10 +21,14 @@ export default function PaymentHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  const fetchHistory = useCallback(async (page = 1) => {
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [modeFilter, setModeFilter] = useState('');
+
+  const fetchHistory = useCallback(async (page = 1, search = '', paymentMode = '') => {
     try {
       setLoading(true);
-      const response = await getPaymentHistory(page, ITEMS_PER_PAGE);
+      const response = await getPaymentHistory(page, ITEMS_PER_PAGE, search, paymentMode);
       setHistory(response.data);
       setPagination(response.pagination);
       setError('');
@@ -36,11 +40,11 @@ export default function PaymentHistoryPage() {
   }, []);
 
   useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+    fetchHistory(1, searchQuery, modeFilter);
+  }, [searchQuery, modeFilter, fetchHistory]);
 
   const handlePageChange = (page) => {
-    fetchHistory(page);
+    fetchHistory(page, searchQuery, modeFilter);
   };
 
   const formatCurrency = (amount) => {
@@ -110,7 +114,7 @@ export default function PaymentHistoryPage() {
     <AdminLayout>
       <div className="page-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <button 
+          <button
             className="btn btn-secondary btn-icon"
             onClick={() => router.push('/admin/payments')}
           >
@@ -124,6 +128,75 @@ export default function PaymentHistoryPage() {
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+
+      {/* Search and Filter Bar */}
+      <div style={{
+        backgroundColor: 'white',
+        padding: 'var(--spacing-4, 16px)',
+        borderRadius: 'var(--border-radius-lg, 8px)',
+        border: '1px solid var(--color-border, #e5e7eb)',
+        marginBottom: 'var(--spacing-4, 16px)',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+        display: 'flex',
+        gap: 'var(--spacing-3, 12px)',
+        alignItems: 'center',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ flex: '1', minWidth: '200px' }}>
+          <input
+            type="text"
+            placeholder="Search by client or project..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              outline: 'none'
+            }}
+          />
+        </div>
+
+        <select
+          value={modeFilter}
+          onChange={(e) => setModeFilter(e.target.value)}
+          style={{
+            padding: '10px 12px',
+            fontSize: 'var(--font-size-sm, 14px)',
+            border: '1px solid var(--color-border, #e5e7eb)',
+            borderRadius: 'var(--border-radius-md, 6px)',
+            backgroundColor: 'white',
+            cursor: 'pointer',
+            minWidth: '130px'
+          }}
+        >
+          <option value="">All Modes</option>
+          <option value="UPI">UPI</option>
+          <option value="BANK">Bank</option>
+          <option value="CASH">Cash</option>
+          <option value="CHEQUE">Cheque</option>
+        </select>
+
+        {(searchQuery || modeFilter) && (
+          <button
+            onClick={() => { setSearchQuery(''); setModeFilter(''); }}
+            style={{
+              padding: '10px 16px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              fontWeight: '500',
+              color: 'var(--color-text-secondary)'
+            }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
 
       <DataTable
         columns={columns}
