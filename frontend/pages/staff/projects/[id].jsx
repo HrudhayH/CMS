@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import StaffLayout from '../../../layouts/staffLayout';
 import { Alert } from '../../../components';
 import { formatDate } from '../../../utils/helpers';
-import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates } from '../../../services/api';
+import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates, addStaffUpdateReply } from '../../../services/api';
 
 /* ---------- Icons ---------- */
 const ArrowLeftIcon = () => (
@@ -144,6 +144,10 @@ export default function StaffProjectDetails() {
     const [updatesHasMore, setUpdatesHasMore] = useState(false);
     const [updatesLoading, setUpdatesLoading] = useState(false);
 
+    // Reply state
+    const [replyTexts, setReplyTexts] = useState({});
+    const [postingReply, setPostingReply] = useState({});
+
     // Fetch project from backend API
     useEffect(() => {
         if (!id) return;
@@ -209,6 +213,27 @@ export default function StaffProjectDetails() {
             ...prev,
             [name]: value
         }));
+    };
+
+    const handleReplyChange = (updateId, text) => {
+        setReplyTexts({ ...replyTexts, [updateId]: text });
+    };
+
+    const handlePostReply = async (updateId) => {
+        const replyText = replyTexts[updateId];
+        if (!replyText || !replyText.trim()) return;
+
+        try {
+            setPostingReply({ ...postingReply, [updateId]: true });
+            await addStaffUpdateReply(id, updateId, replyText);
+            setReplyTexts({ ...replyTexts, [updateId]: '' });
+            // Refresh updates to show the new reply
+            fetchUpdates(1, true);
+        } catch (err) {
+            alert(err.message || 'Failed to post reply');
+        } finally {
+            setPostingReply({ ...postingReply, [updateId]: false });
+        }
     };
 
     const [submitting, setSubmitting] = useState(false);
@@ -870,6 +895,91 @@ export default function StaffProjectDetails() {
                     color: #6b7280;
                 }
 
+                /* Replies Section */
+                .replies-section {
+                    margin-top: var(--spacing-4);
+                    padding-top: var(--spacing-4);
+                    border-top: 1px solid #e5e7eb;
+                }
+                .replies-header {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    margin-bottom: var(--spacing-3);
+                }
+                .replies-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    margin-bottom: var(--spacing-3);
+                }
+                .reply-item {
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    max-width: 85%;
+                }
+                .reply-item.client {
+                    background: #dbeafe;
+                    border: 1px solid #93c5fd;
+                    align-self: flex-start;
+                }
+                .reply-item.staff {
+                    background: #ecfdf5;
+                    border: 1px solid #86efac;
+                    align-self: flex-end;
+                }
+                .reply-sender {
+                    font-size: 11px;
+                    font-weight: 600;
+                    color: #475569;
+                    margin-bottom: 2px;
+                }
+                .reply-message {
+                    font-size: 13px;
+                    color: #1a1a1a;
+                }
+                .reply-time {
+                    font-size: 10px;
+                    color: #94a3b8;
+                    margin-top: 4px;
+                }
+                .reply-input-container {
+                    display: flex;
+                    gap: 8px;
+                }
+                .reply-input {
+                    flex: 1;
+                    padding: 8px 12px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    font-size: 13px;
+                }
+                .reply-input:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                }
+                .reply-btn {
+                    padding: 8px 16px;
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+                .reply-btn:hover {
+                    background: #2563eb;
+                }
+                .reply-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
                 .load-more-container {
                     display: flex;
                     justify-content: center;
@@ -1263,6 +1373,49 @@ export default function StaffProjectDetails() {
                                                                 <div className="timeline-progress">
                                                                     <TrendingUpIcon />
                                                                     Progress: {update.progress}%
+                                                                </div>
+                                                            </div>
+
+                                                            {/* Two-Way Replies Section */}
+                                                            <div className="replies-section">
+                                                                <div className="replies-header">
+                                                                    <MessageSquareIcon />
+                                                                    Conversation ({update.replies?.length || 0})
+                                                                </div>
+
+                                                                {update.replies && update.replies.length > 0 && (
+                                                                    <div className="replies-list">
+                                                                        {update.replies.map((reply, ri) => (
+                                                                            <div key={ri} className={`reply-item ${reply.senderType}`}>
+                                                                                <div className="reply-sender">
+                                                                                    {reply.senderType === 'staff'
+                                                                                        ? (reply.staff?.name || 'You')
+                                                                                        : (reply.client?.name || 'Client')}
+                                                                                </div>
+                                                                                <div className="reply-message">{reply.message}</div>
+                                                                                <div className="reply-time">
+                                                                                    {formatDate(reply.createdAt)}
+                                                                                </div>
+                                                                            </div>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+
+                                                                <div className="reply-input-container">
+                                                                    <input
+                                                                        type="text"
+                                                                        className="reply-input"
+                                                                        placeholder="Reply to client..."
+                                                                        value={replyTexts[update._id] || ''}
+                                                                        onChange={(e) => handleReplyChange(update._id, e.target.value)}
+                                                                    />
+                                                                    <button
+                                                                        className="reply-btn"
+                                                                        disabled={postingReply[update._id]}
+                                                                        onClick={() => handlePostReply(update._id)}
+                                                                    >
+                                                                        {postingReply[update._id] ? '...' : 'Reply'}
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>

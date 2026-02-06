@@ -9,7 +9,8 @@ const {
   getClientProjectUpdates,
   getClientAllUpdates,
   getClientPaymentSummary,
-  getClientPaymentHistory
+  getClientPaymentHistory,
+  addClientUpdateReply
 } = require('../controllers/clientPortal.controller');
 
 // All routes protected by auth + client role
@@ -23,6 +24,7 @@ router.get('/dashboard/stats', getClientDashboardStats);
 router.get('/projects', getClientProjects);
 router.get('/projects/:id', getClientProject);
 router.get('/projects/:id/updates', getClientProjectUpdates);
+router.post('/projects/:id/updates/:updateId/reply', addClientUpdateReply);
 
 // Updates
 router.get('/updates/all', getClientAllUpdates);

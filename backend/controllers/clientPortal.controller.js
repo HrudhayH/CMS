@@ -127,7 +127,7 @@ const getClientProjectUpdates = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 5;
 
-    const project = await Project.findOne({ _id: id, assignedClients: clientId });
+    const project = await Project.findOne({ _id: id, assignedClients: clientId }).populate('dailyUpdates.staff', 'name');
     if (!project) {
       return res.status(404).json({ success: false, message: 'Project not found.' });
     }
@@ -159,7 +159,9 @@ const getClientAllUpdates = async (req, res) => {
     const clientId = req.user.id;
 
     const projects = await Project.find({ assignedClients: clientId })
-      .populate('assignedStaff', 'name')
+      .populate('dailyUpdates.staff', 'name')
+      .populate('dailyUpdates.replies.staff', 'name')
+      .populate('dailyUpdates.replies.client', 'name')
       .lean();
 
     const allUpdates = projects.flatMap(project =>
@@ -236,6 +238,46 @@ const getClientPaymentHistory = async (req, res) => {
   }
 };
 
+// Add client reply to a daily update
+const addClientUpdateReply = async (req, res) => {
+  try {
+    const clientId = req.user.id;
+    const { id, updateId } = req.params;
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required.' });
+    }
+
+    const project = await Project.findOne({ _id: id, assignedClients: clientId });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found or access denied.' });
+    }
+
+    const dailyUpdate = project.dailyUpdates.id(updateId);
+    if (!dailyUpdate) {
+      return res.status(404).json({ success: false, message: 'Daily update not found.' });
+    }
+
+    dailyUpdate.replies.push({
+      senderType: 'client',
+      client: clientId,
+      message: message.trim(),
+      createdAt: new Date()
+    });
+
+    await project.save();
+
+    res.json({
+      success: true,
+      message: 'Reply added successfully.',
+      data: dailyUpdate.replies[dailyUpdate.replies.length - 1]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
 module.exports = {
   clientLogin,
   getClientDashboardStats,
@@ -244,5 +286,6 @@ module.exports = {
   getClientProjectUpdates,
   getClientAllUpdates,
   getClientPaymentSummary,
-  getClientPaymentHistory
+  getClientPaymentHistory,
+  addClientUpdateReply
 };

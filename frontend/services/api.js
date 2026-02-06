@@ -359,6 +359,20 @@ export async function getClientAllUpdates() {
   return fetchWithClientAuth('/client/updates/all');
 }
 
+export async function addClientUpdateReply(projectId, updateId, message) {
+  return fetchWithClientAuth(`/client/projects/${projectId}/updates/${updateId}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
+export async function addStaffUpdateReply(projectId, updateId, message) {
+  return fetchWithStaffAuth(`/staff/projects/${projectId}/updates/${updateId}/reply`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+}
+
 // ============================================
 // Admin Payment APIs
 // ============================================

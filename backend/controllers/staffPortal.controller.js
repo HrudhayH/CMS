@@ -110,9 +110,9 @@ const getStaffProjectById = async (req, res) => {
     const staffId = req.user.id;
     const { id } = req.params;
 
-    const project = await Project.findOne({ 
-      _id: id, 
-      assignedStaff: staffId 
+    const project = await Project.findOne({
+      _id: id,
+      assignedStaff: staffId
     })
       .populate('assignedClients', 'name email phone')
       .populate('assignedStaff', 'name email')
@@ -120,9 +120,9 @@ const getStaffProjectById = async (req, res) => {
       .lean();
 
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found or you do not have access to it.' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or you do not have access to it.'
       });
     }
 
@@ -140,26 +140,26 @@ const addProjectUpdate = async (req, res) => {
   try {
     const staffId = req.user.id;
     const { id } = req.params;
-    const { status, progress, comment } = req.body;
+    const { status, progress, comment, images } = req.body;
 
     // Validate required fields
     if (!comment || !comment.trim()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Comment is required.' 
+      return res.status(400).json({
+        success: false,
+        message: 'Comment is required.'
       });
     }
 
     // Find project and verify staff is assigned
-    const project = await Project.findOne({ 
-      _id: id, 
-      assignedStaff: staffId 
+    const project = await Project.findOne({
+      _id: id,
+      assignedStaff: staffId
     });
 
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found or you do not have access to it.' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or you do not have access to it.'
       });
     }
 
@@ -169,6 +169,7 @@ const addProjectUpdate = async (req, res) => {
       status: status || project.status,
       progress: parseInt(progress) || project.progress || 0,
       comment: comment.trim(),
+      images: images || [],
       createdAt: new Date()
     };
 
@@ -176,7 +177,7 @@ const addProjectUpdate = async (req, res) => {
     project.dailyUpdates.unshift(newUpdate);
     project.status = newUpdate.status;
     project.progress = newUpdate.progress;
-    
+
     await project.save();
 
     // Return updated project with populated fields
@@ -186,10 +187,10 @@ const addProjectUpdate = async (req, res) => {
       .populate('dailyUpdates.staff', 'name email')
       .lean();
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Update added successfully.',
-      data: updatedProject 
+      data: updatedProject
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
@@ -207,15 +208,19 @@ const getProjectUpdates = async (req, res) => {
     const limit = parseInt(req.query.limit) || 5;
 
     // Find project and verify staff is assigned
-    const project = await Project.findOne({ 
-      _id: id, 
-      assignedStaff: staffId 
-    }).lean();
+    const project = await Project.findOne({
+      _id: id,
+      assignedStaff: staffId
+    })
+      .populate('dailyUpdates.staff', 'name')
+      .populate('dailyUpdates.replies.staff', 'name')
+      .populate('dailyUpdates.replies.client', 'name')
+      .lean();
 
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found or you do not have access to it.' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found or you do not have access to it.'
       });
     }
 
@@ -224,18 +229,12 @@ const getProjectUpdates = async (req, res) => {
     const totalPages = Math.ceil(total / limit);
     const skip = (page - 1) * limit;
 
-    // Slice the updates array for pagination (already sorted by createdAt DESC from unshift)
+    // Slice the updates array for pagination
     const paginatedUpdates = (project.dailyUpdates || []).slice(skip, skip + limit);
-
-    // Populate staff info for paginated updates
-    const populatedUpdates = await Project.populate(paginatedUpdates, {
-      path: 'staff',
-      select: 'name email'
-    });
 
     res.json({
       success: true,
-      data: populatedUpdates,
+      data: paginatedUpdates,
       pagination: {
         page,
         limit,
@@ -249,11 +248,54 @@ const getProjectUpdates = async (req, res) => {
   }
 };
 
+/**
+ * Staff adds a reply to a daily update.
+ */
+const addStaffUpdateReply = async (req, res) => {
+  try {
+    const staffId = req.user.id;
+    const { id, updateId } = req.params;
+    const { message } = req.body;
+
+    if (!message || !message.trim()) {
+      return res.status(400).json({ success: false, message: 'Message is required.' });
+    }
+
+    const project = await Project.findOne({ _id: id, assignedStaff: staffId });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found or access denied.' });
+    }
+
+    const dailyUpdate = project.dailyUpdates.id(updateId);
+    if (!dailyUpdate) {
+      return res.status(404).json({ success: false, message: 'Daily update not found.' });
+    }
+
+    dailyUpdate.replies.push({
+      senderType: 'staff',
+      staff: staffId,
+      message: message.trim(),
+      createdAt: new Date()
+    });
+
+    await project.save();
+
+    res.json({
+      success: true,
+      message: 'Reply added successfully.',
+      data: dailyUpdate.replies[dailyUpdate.replies.length - 1]
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
 module.exports = {
   getStaffDashboardStats,
   getStaffRecentProjects,
   getStaffProjects,
   getStaffProjectById,
   addProjectUpdate,
-  getProjectUpdates
+  getProjectUpdates,
+  addStaffUpdateReply
 };

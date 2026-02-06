@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { withClientLayout } from '../../../layouts/ClientLayout';
-import { getClientAllUpdates, getClientProjects } from '../../../services/api';
+import { getClientAllUpdates, getClientProjects, addClientUpdateReply } from '../../../services/api';
 
 const getStatusColor = (status) => {
     const colors = {
@@ -19,28 +19,51 @@ function ClientDailyUpdates() {
     const [selectedProjectId, setSelectedProjectId] = useState('all');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [newComments, setNewComments] = useState({});
+    const [postingComment, setPostingComment] = useState({});
     const router = useRouter();
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                setLoading(true);
-                const [updatesRes, projectsRes] = await Promise.all([
-                    getClientAllUpdates(),
-                    getClientProjects()
-                ]);
-                setUpdates(updatesRes.data || []);
-                setAssignedProjects(projectsRes.data || []);
-                setError('');
-            } catch (err) {
-                setError(err.message || 'Failed to load data');
-            } finally {
-                setLoading(false);
-            }
-        };
+    const fetchData = async () => {
+        try {
+            setLoading(true);
+            const [updatesRes, projectsRes] = await Promise.all([
+                getClientAllUpdates(),
+                getClientProjects()
+            ]);
+            setUpdates(updatesRes.data || []);
+            setAssignedProjects(projectsRes.data || []);
+            setError('');
+        } catch (err) {
+            setError(err.message || 'Failed to load data');
+        } finally {
+            setLoading(false);
+        }
+    };
 
+    useEffect(() => {
         fetchData();
     }, []);
+
+    const handlePostReply = async (projectId, updateId) => {
+        const replyText = newComments[updateId];
+        if (!replyText || !replyText.trim()) return;
+
+        try {
+            setPostingComment({ ...postingComment, [updateId]: true });
+            await addClientUpdateReply(projectId, updateId, replyText);
+            setNewComments({ ...newComments, [updateId]: '' });
+            // Refresh data to show the new reply
+            await fetchData();
+        } catch (err) {
+            alert(err.message || 'Failed to post reply');
+        } finally {
+            setPostingComment({ ...postingComment, [updateId]: false });
+        }
+    };
+
+    const handleCommentChange = (updateId, text) => {
+        setNewComments({ ...newComments, [updateId]: text });
+    };
 
     const formatTime = (dateString) => {
         if (!dateString) return '';
@@ -48,6 +71,15 @@ function ClientDailyUpdates() {
         return date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit'
+        });
+    };
+
+    const formatDate = (dateString) => {
+        if (!dateString) return '';
+        return new Date(dateString).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
         });
     };
 
@@ -78,6 +110,7 @@ function ClientDailyUpdates() {
                 .updates-page {
                     max-width: 900px;
                     margin: 0 auto;
+                    padding-bottom: 40px;
                 }
                 .page-header {
                     margin-bottom: 32px;
@@ -175,7 +208,7 @@ function ClientDailyUpdates() {
                 .updates-list {
                     display: flex;
                     flex-direction: column;
-                    gap: 24px;
+                    gap: 32px;
                 }
                 .update-item {
                     display: flex;
@@ -198,7 +231,7 @@ function ClientDailyUpdates() {
                     position: absolute;
                     left: 5px;
                     top: 18px;
-                    bottom: -15px;
+                    bottom: -32px;
                     width: 2px;
                     background: #f1f5f9;
                 }
@@ -226,13 +259,28 @@ function ClientDailyUpdates() {
                     font-size: 15px;
                     color: #475569;
                     line-height: 1.6;
-                    margin: 0 0 12px 0;
+                    margin: 0 0 16px 0;
+                }
+                .update-images {
+                    display: flex;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                    overflow-x: auto;
+                    padding-bottom: 8px;
+                }
+                .update-image {
+                    width: 120px;
+                    height: 80px;
+                    object-fit: cover;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
                 }
                 .update-footer {
                     display: flex;
                     align-items: center;
                     gap: 16px;
                     flex-wrap: wrap;
+                    margin-bottom: 16px;
                 }
                 .progress-tag {
                     font-size: 11px;
@@ -248,6 +296,106 @@ function ClientDailyUpdates() {
                     font-weight: 800;
                     text-transform: uppercase;
                 }
+                
+                .feedback-section {
+                    background: #f8fafc;
+                    border-radius: 12px;
+                    padding: 16px;
+                    margin-top: 8px;
+                }
+                .feedback-title {
+                    font-size: 12px;
+                    font-weight: 700;
+                    color: #64748b;
+                    text-transform: uppercase;
+                    margin-bottom: 12px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .replies-thread {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                    margin-bottom: 16px;
+                }
+                .reply-bubble {
+                    padding: 10px 14px;
+                    border-radius: 12px;
+                    max-width: 85%;
+                }
+                .reply-bubble.client {
+                    background: #dbeafe;
+                    border: 1px solid #93c5fd;
+                    align-self: flex-end;
+                }
+                .reply-bubble.staff {
+                    background: white;
+                    border: 1px solid #e2e8f0;
+                    align-self: flex-start;
+                }
+                .reply-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 4px;
+                }
+                .sender-name {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #475569;
+                }
+                .reply-bubble.client .sender-name {
+                    color: #1d4ed8;
+                }
+                .reply-time {
+                    font-size: 11px;
+                    color: #94a3b8;
+                }
+                .reply-bubble p {
+                    font-size: 14px;
+                    color: #334155;
+                    margin: 0;
+                }
+                .add-feedback {
+                    display: flex;
+                    gap: 12px;
+                }
+                .feedback-input {
+                    flex: 1;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    border: 1px solid #e2e8f0;
+                    font-size: 14px;
+                    resize: none;
+                    height: 38px;
+                    transition: all 0.2s;
+                }
+                .feedback-input:focus {
+                    outline: none;
+                    border-color: #3b82f6;
+                    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+                }
+                .feedback-btn {
+                    padding: 0 16px;
+                    border-radius: 8px;
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    white-space: nowrap;
+                    transition: all 0.2s;
+                }
+                .feedback-btn:hover {
+                    background: #2563eb;
+                }
+                .feedback-btn:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+
                 .empty-state {
                     text-align: center;
                     padding: 80px 0;
@@ -325,14 +473,19 @@ function ClientDailyUpdates() {
                                                     Posted by {update.staff?.name || 'Staff Member'}
                                                 </span>
                                                 <span className="update-date">
-                                                    {new Date(update.createdAt).toLocaleDateString('en-US', {
-                                                        month: 'short',
-                                                        day: 'numeric',
-                                                        year: 'numeric'
-                                                    })} • {formatTime(update.createdAt)}
+                                                    {formatDate(update.createdAt)} • {formatTime(update.createdAt)}
                                                 </span>
                                             </div>
                                             <p className="update-comment">{update.comment}</p>
+
+                                            {update.images && update.images.length > 0 && (
+                                                <div className="update-images">
+                                                    {update.images.map((img, i) => (
+                                                        <img key={i} src={img} alt="Update" className="update-image" />
+                                                    ))}
+                                                </div>
+                                            )}
+
                                             <div className="update-footer">
                                                 <span className="progress-tag">
                                                     Milestone: {update.progress}%
@@ -340,6 +493,47 @@ function ClientDailyUpdates() {
                                                 <span className="status-tag" style={{ color: getStatusColor(update.status) }}>
                                                     {update.status}
                                                 </span>
+                                            </div>
+
+                                            <div className="feedback-section">
+                                                <div className="feedback-title">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                                    </svg>
+                                                    Conversation ({update.replies?.length || 0})
+                                                </div>
+
+                                                {update.replies && update.replies.length > 0 && (
+                                                    <div className="replies-thread">
+                                                        {update.replies.map((reply, i) => (
+                                                            <div key={i} className={`reply-bubble ${reply.senderType}`}>
+                                                                <div className="reply-header">
+                                                                    <span className="sender-name">
+                                                                        {reply.senderType === 'staff' ? (reply.staff?.name || 'Staff') : 'You'}
+                                                                    </span>
+                                                                    <span className="reply-time">{formatDate(reply.createdAt)} {formatTime(reply.createdAt)}</span>
+                                                                </div>
+                                                                <p>{reply.message}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                <div className="add-feedback">
+                                                    <textarea
+                                                        className="feedback-input"
+                                                        placeholder="Add your reply..."
+                                                        value={newComments[update._id] || ''}
+                                                        onChange={(e) => handleCommentChange(update._id, e.target.value)}
+                                                    ></textarea>
+                                                    <button
+                                                        className="feedback-btn"
+                                                        disabled={postingComment[update._id]}
+                                                        onClick={() => handlePostReply(update.projectId, update._id)}
+                                                    >
+                                                        {postingComment[update._id] ? 'Posting...' : 'Reply'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

@@ -13,7 +13,8 @@ const {
   getStaffProjects,
   getStaffProjectById,
   addProjectUpdate,
-  getProjectUpdates
+  getProjectUpdates,
+  addStaffUpdateReply
 } = require('../controllers/staffPortal.controller');
 
 // Apply auth and role middleware to all staff routes
@@ -29,5 +30,6 @@ router.get('/projects', getStaffProjects);
 router.get('/projects/:id', getStaffProjectById);
 router.get('/projects/:id/updates', getProjectUpdates);
 router.post('/projects/:id/update', addProjectUpdate);
+router.post('/projects/:id/updates/:updateId/reply', addStaffUpdateReply);
 
 module.exports = router;

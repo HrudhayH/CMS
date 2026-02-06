@@ -69,6 +69,36 @@ const projectSchema = new mongoose.Schema(
           type: String,
           required: true
         },
+        images: [
+          {
+            type: String
+          }
+        ],
+        replies: [
+          {
+            senderType: {
+              type: String,
+              enum: ['staff', 'client'],
+              required: true
+            },
+            staff: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Staff'
+            },
+            client: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: 'Client'
+            },
+            message: {
+              type: String,
+              required: true
+            },
+            createdAt: {
+              type: Date,
+              default: Date.now
+            }
+          }
+        ],
         createdAt: {
           type: Date,
           default: Date.now
