@@ -12,6 +12,12 @@ function getStaffToken() {
   return localStorage.getItem('staffToken');
 }
 
+// Get client token from localStorage
+function getClientToken() {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('clientToken');
+}
+
 // Generic fetch wrapper with admin auth
 async function fetchWithAuth(endpoint, options = {}) {
   const token = getToken();
@@ -80,6 +86,40 @@ async function fetchWithStaffAuth(endpoint, options = {}) {
   return data;
 }
 
+// Fetch wrapper for client portal (uses clientToken)
+async function fetchWithClientAuth(endpoint, options = {}) {
+  const token = getClientToken();
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    // Handle token expiration for client
+    if (response.status === 401) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('clientToken');
+        window.location.href = '/client/login';
+      }
+    }
+    throw new Error(data.message || 'Request failed');
+  }
+
+  return data;
+}
+
 // ============================================
 // Auth APIs
 // ============================================
@@ -103,6 +143,24 @@ export async function adminLogin(email, password) {
 
 export async function staffLogin(email, password) {
   const response = await fetch(`${API_URL}/auth/staff/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Login failed');
+  }
+
+  return data;
+}
+
+export async function clientLogin(email, password) {
+  const response = await fetch(`${API_URL}/auth/client/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -276,4 +334,27 @@ export async function updateStaffStatus(id, status) {
     method: 'PATCH',
     body: JSON.stringify({ status }),
   });
+}
+
+// ============================================
+// Client Portal APIs (uses clientToken)
+// ============================================
+export async function getClientDashboardStats() {
+  return fetchWithClientAuth('/client/dashboard/stats');
+}
+
+export async function getClientProjects(page = 1, limit = 10) {
+  return fetchWithClientAuth(`/client/projects?page=${page}&limit=${limit}`);
+}
+
+export async function getClientProject(id) {
+  return fetchWithClientAuth(`/client/projects/${id}`);
+}
+
+export async function getClientProjectUpdates(projectId, page = 1, limit = 5) {
+  return fetchWithClientAuth(`/client/projects/${projectId}/updates?page=${page}&limit=${limit}`);
+}
+
+export async function getClientAllUpdates() {
+  return fetchWithClientAuth('/client/updates/all');
 }
