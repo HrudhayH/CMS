@@ -14,8 +14,18 @@ const {
   getStaffProjectById,
   addProjectUpdate,
   getProjectUpdates,
-  addStaffUpdateReply
+  addStaffUpdateReply,
+  updateDeploymentLinks
 } = require('../controllers/staffPortal.controller');
+const {
+  getRoadmap,
+  createRoadmap,
+  addPhase,
+  updatePhase,
+  addMilestone,
+  updateMilestone,
+  deletePhase
+} = require('../controllers/roadmap.controller');
 
 // Apply auth and role middleware to all staff routes
 router.use(authMiddleware);
@@ -30,6 +40,16 @@ router.get('/projects', getStaffProjects);
 router.get('/projects/:id', getStaffProjectById);
 router.get('/projects/:id/updates', getProjectUpdates);
 router.post('/projects/:id/update', addProjectUpdate);
+router.put('/projects/:id/deployment-links', updateDeploymentLinks);
 router.post('/projects/:id/updates/:updateId/reply', addStaffUpdateReply);
+
+// Roadmap Endpoints
+router.get('/projects/:id/roadmap', getRoadmap);
+router.post('/projects/:id/roadmap', createRoadmap);
+router.post('/projects/:id/roadmap/phases', addPhase);
+router.put('/projects/:id/roadmap/phases/:phaseId', updatePhase);
+router.delete('/projects/:id/roadmap/phases/:phaseId', deletePhase);
+router.post('/projects/:id/roadmap/phases/:phaseId/milestones', addMilestone);
+router.put('/projects/:id/roadmap/phases/:phaseId/milestones/:milestoneId', updateMilestone);
 
 module.exports = router;

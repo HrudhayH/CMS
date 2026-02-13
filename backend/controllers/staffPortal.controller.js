@@ -290,6 +290,74 @@ const addStaffUpdateReply = async (req, res) => {
   }
 };
 
+/**
+ * Update project deployment links (development and production)
+ * PUT /staff/projects/:projectId/deployment-links
+ */
+const updateDeploymentLinks = async (req, res) => {
+  try {
+   const { id } = req.params;
+    const { developmentLink, productionLink } = req.body;
+
+    // Validate inputs
+    if (!developmentLink && !productionLink) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'At least one deployment link is required' 
+      });
+    }
+
+    // Validate URL format if provided
+    const urlRegex = /^https?:\/\/.+/;
+    
+    if (developmentLink && !urlRegex.test(developmentLink)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid development URL format. Must start with http:// or https://' 
+      });
+    }
+
+    if (productionLink && !urlRegex.test(productionLink)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Invalid production URL format. Must start with http:// or https://' 
+      });
+    }
+
+    // Find and update project
+    const project = await Project.findByIdAndUpdate(
+       id,
+      {
+        developmentLink: developmentLink || '',
+        productionLink: productionLink || ''
+      },
+      { new: true, runValidators: true }
+    );
+
+    if (!project) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Project not found' 
+      });
+    }
+
+    console.log('[updateDeploymentLinks] Links updated for project:', id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Deployment links updated successfully',
+      data: project
+    });
+  } catch (error) {
+    console.error('[updateDeploymentLinks] Error:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error updating deployment links',
+      error: error.message 
+    });
+  }
+};
+
 module.exports = {
   getStaffDashboardStats,
   getStaffRecentProjects,
@@ -297,5 +365,6 @@ module.exports = {
   getStaffProjectById,
   addProjectUpdate,
   getProjectUpdates,
-  addStaffUpdateReply
+  addStaffUpdateReply,
+  updateDeploymentLinks
 };

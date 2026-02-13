@@ -4,3 +4,4 @@ export { default as DataTable } from './DataTable';
 export { default as StatusBadge } from './StatusBadge';
 export { default as ConfirmDialog } from './ConfirmDialog';
 export { default as Alert } from './Alert';
+export { default as Loader } from './Loader';

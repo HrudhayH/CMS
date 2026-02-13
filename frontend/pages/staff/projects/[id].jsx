@@ -2,8 +2,17 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import StaffLayout from '../../../layouts/staffLayout';
 import { Alert } from '../../../components';
+import RoadmapTab from '../../../components/staff/RoadmapTab';
 import { formatDate } from '../../../utils/helpers';
-import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates, addStaffUpdateReply } from '../../../services/api';
+// import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates, addStaffUpdateReply } from '../../../services/api';
+
+import {
+  getStaffProject,
+  addStaffProjectUpdate,
+  getStaffProjectUpdates,
+  addStaffUpdateReply,
+  updateStaffDeploymentLinks
+} from '../../../services/api';
 
 /* ---------- Icons ---------- */
 const ArrowLeftIcon = () => (
@@ -122,6 +131,35 @@ const TrendingUpIcon = () => (
     </svg>
 );
 
+const LinkIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+);
+
+const ExternalLinkIcon = () => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" y1="14" x2="21" y2="3" />
+    </svg>
+);
+
+const EditIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+    </svg>
+);
+
+const XIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <line x1="18" y1="6" x2="6" y2="18" />
+        <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+);
+
 export default function StaffProjectDetails() {
     const router = useRouter();
     const { id } = router.query;
@@ -130,6 +168,7 @@ export default function StaffProjectDetails() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [activeTab, setActiveTab] = useState('overview');
 
     // Update form state
     const [updateForm, setUpdateForm] = useState({
@@ -148,6 +187,17 @@ export default function StaffProjectDetails() {
     const [replyTexts, setReplyTexts] = useState({});
     const [postingReply, setPostingReply] = useState({});
 
+    // Deployment Links state
+    const [deploymentLinks, setDeploymentLinks] = useState({
+        development: '',
+        production: ''
+    });
+    const [showLinksModal, setShowLinksModal] = useState(false);
+    const [tempLinks, setTempLinks] = useState({
+        development: '',
+        production: ''
+    });
+
     // Fetch project from backend API
     useEffect(() => {
         if (!id) return;
@@ -157,16 +207,24 @@ export default function StaffProjectDetails() {
                 setLoading(true);
                 setError('');
                 const response = await getStaffProject(id);
-                if (response.success && response.data) {
-                    setProject(response.data);
-                    setUpdateForm({
-                        status: response.data.status || '',
-                        progress: response.data.progress || 0,
-                        comment: '',
-                    });
-                    // Fetch initial paginated updates
-                    fetchUpdates(1, true);
-                } else {
+                if (response.success && response.data) if (response.success && response.data) {
+    setProject(response.data);
+
+    // ✅ Correct mapping from backend fields
+    setDeploymentLinks({
+        development: response.data.developmentLink || '',
+        production: response.data.productionLink || ''
+    });
+
+    setUpdateForm({
+        status: response.data.status || '',
+        progress: response.data.progress || 0,
+        comment: '',
+    });
+
+    fetchUpdates(1, true);
+}
+ else {
                     setError('Project not found');
                 }
             } catch (err) {
@@ -277,6 +335,49 @@ export default function StaffProjectDetails() {
         } finally {
             setSubmitting(false);
         }
+    };
+
+    // Deployment Links Handlers
+    const handleEditLinks = () => {
+        setTempLinks({ ...deploymentLinks });
+        setShowLinksModal(true);
+    };
+
+const handleSaveLinks = async () => {
+  try {
+    const response = await updateStaffDeploymentLinks(id, {
+      developmentLink: tempLinks.development,
+      productionLink: tempLinks.production
+    });
+
+    if (response.success) {
+      setDeploymentLinks({
+        development: response.data.developmentLink || '',
+        production: response.data.productionLink || ''
+      });
+
+      setShowLinksModal(false);
+      setSuccess('Deployment links updated successfully!');
+      setTimeout(() => setSuccess(''), 3000);
+    }
+  } catch (err) {
+    setError(err.message || 'Failed to update links');
+  }
+};
+
+
+
+    const handleCancelLinks = () => {
+        setTempLinks({ development: '', production: '' });
+        setShowLinksModal(false);
+    };
+
+    const handleLinkInputChange = (e) => {
+        const { name, value } = e.target;
+        setTempLinks(prev => ({
+            ...prev,
+            [name]: value
+        }));
     };
 
     const getStatusColor = (status) => {
@@ -391,6 +492,35 @@ export default function StaffProjectDetails() {
                     padding: var(--spacing-6);
                     margin-bottom: var(--spacing-5);
                     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                }
+
+                .tabs-container {
+                    display: flex;
+                    gap: var(--spacing-4);
+                    border-bottom: 1px solid #e5e7eb;
+                    margin-bottom: var(--spacing-5);
+                }
+
+                .tab-button {
+                    padding: 12px 4px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #6b7280;
+                    background: none;
+                    border: none;
+                    border-bottom: 2px solid transparent;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    margin-bottom: -1px;
+                }
+
+                .tab-button:hover {
+                    color: #3b82f6;
+                }
+
+                .tab-button.active {
+                    color: #3b82f6;
+                    border-bottom-color: #3b82f6;
                 }
 
                 .project-hero-header {
@@ -532,6 +662,21 @@ export default function StaffProjectDetails() {
                     border-bottom: 1px solid #f3f4f6;
                 }
 
+                .card-header-with-action {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: var(--spacing-4);
+                    padding-bottom: var(--spacing-3);
+                    border-bottom: 1px solid #f3f4f6;
+                }
+
+                .card-header-left {
+                    display: flex;
+                    align-items: center;
+                    gap: var(--spacing-3);
+                }
+
                 .card-icon {
                     width: 40px;
                     height: 40px;
@@ -548,6 +693,27 @@ export default function StaffProjectDetails() {
                     font-weight: 700;
                     color: #1a1a1a;
                     margin: 0;
+                }
+
+                .edit-button {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 8px 14px;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #4b5563;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .edit-button:hover {
+                    background: #3b82f6;
+                    border-color: #3b82f6;
+                    color: white;
                 }
 
                 .info-row {
@@ -590,6 +756,28 @@ export default function StaffProjectDetails() {
                     font-size: 14px;
                     font-weight: 600;
                     color: #1a1a1a;
+                }
+
+                .link-value {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    color: #3b82f6;
+                    text-decoration: none;
+                    font-size: 14px;
+                    font-weight: 500;
+                    transition: all 0.2s ease;
+                }
+
+                .link-value:hover {
+                    text-decoration: underline;
+                    color: #2563eb;
+                }
+
+                .link-value-empty {
+                    color: #9ca3af;
+                    font-style: italic;
+                    font-weight: 400;
                 }
 
                 .tech-stack-grid {
@@ -658,6 +846,133 @@ export default function StaffProjectDetails() {
 
                 .full-width-card {
                     grid-column: 1 / -1;
+                }
+
+                /* Modal Styles */
+                .modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 1000;
+                    padding: 20px;
+                    animation: fadeIn 0.2s ease;
+                }
+
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+
+                .modal-content {
+                    background: white;
+                    border-radius: 12px;
+                    width: 100%;
+                    max-width: 500px;
+                    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                    animation: slideUp 0.3s ease;
+                }
+
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(20px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+
+                .modal-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 24px;
+                    border-bottom: 1px solid #e5e7eb;
+                }
+
+                .modal-title {
+                    font-size: 18px;
+                    font-weight: 700;
+                    color: #1a1a1a;
+                    margin: 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+
+                .modal-close {
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 6px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: #f9fafb;
+                    border: 1px solid #e5e7eb;
+                    color: #6b7280;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+
+                .modal-close:hover {
+                    background: #fee2e2;
+                    border-color: #fecaca;
+                    color: #dc2626;
+                }
+
+                .modal-body {
+                    padding: 24px;
+                }
+
+                .modal-footer {
+                    display: flex;
+                    justify-content: flex-end;
+                    gap: 12px;
+                    padding: 20px 24px;
+                    border-top: 1px solid #e5e7eb;
+                    background: #f9fafb;
+                    border-radius: 0 0 12px 12px;
+                }
+
+                .modal-button {
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    border: 1px solid;
+                }
+
+                .modal-button-cancel {
+                    background: white;
+                    border-color: #e5e7eb;
+                    color: #4b5563;
+                }
+
+                .modal-button-cancel:hover {
+                    background: #f9fafb;
+                    border-color: #d1d5db;
+                }
+
+                .modal-button-save {
+                    background: #3b82f6;
+                    border-color: #3b82f6;
+                    color: white;
+                }
+
+                .modal-button-save:hover {
+                    background: #2563eb;
+                    border-color: #2563eb;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
                 }
 
                 /* Update Form Styles */
@@ -1035,6 +1350,14 @@ export default function StaffProjectDetails() {
                         flex-direction: column;
                         gap: var(--spacing-3);
                     }
+
+                    .modal-overlay {
+                        padding: 16px;
+                    }
+
+                    .modal-content {
+                        max-width: 100%;
+                    }
                 }
             `}</style>
 
@@ -1125,325 +1448,454 @@ export default function StaffProjectDetails() {
                         )}
                     </div>
 
+                    {/* Tab Navigation */}
+                    <div className="tabs-container">
+                        <button
+                            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('overview')}
+                        >
+                            Overview
+                        </button>
+                        <button
+                            className={`tab-button ${activeTab === 'roadmap' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('roadmap')}
+                        >
+                            Roadmap
+                        </button>
+                    </div>
+
+                    {activeTab === 'roadmap' && <RoadmapTab projectId={id} />}
+
                     {/* Main Content Layout */}
-                    <div className="content-layout">
-                        {/* Left Column */}
-                        <div>
-                            {/* Info Cards Grid */}
-                            <div className="cards-grid">
-                                {/* Timeline Card */}
-                                <div className="info-card">
-                                    <div className="card-header-custom">
-                                        <div className="card-icon">
-                                            <CalendarIcon />
+                    {activeTab === 'overview' && (
+                        <div className="content-layout">
+                            {/* Left Column */}
+                            <div>
+                                {/* Info Cards Grid */}
+                                <div className="cards-grid">
+                                    {/* Timeline Card */}
+                                    <div className="info-card">
+                                        <div className="card-header-custom">
+                                            <div className="card-icon">
+                                                <CalendarIcon />
+                                            </div>
+                                            <h3 className="card-title-custom">Timeline</h3>
                                         </div>
-                                        <h3 className="card-title-custom">Timeline</h3>
-                                    </div>
-                                    <div className="info-row">
-                                        <div className="info-icon">
-                                            <CalendarIcon />
-                                        </div>
-                                        <div className="info-content">
-                                            <div className="info-label">Start Date</div>
-                                            <div className="info-value">{formatDate(project.createdAt)}</div>
-                                        </div>
-                                    </div>
-                                    <div className="info-row">
-                                        <div className="info-icon">
-                                            <ClockIcon />
-                                        </div>
-                                        <div className="info-content">
-                                            <div className="info-label">Last Updated</div>
-                                            <div className="info-value">{formatDate(project.updatedAt)}</div>
-                                        </div>
-                                    </div>
-                                    {project.deadline && (
                                         <div className="info-row">
                                             <div className="info-icon">
-                                                <TargetIcon />
+                                                <CalendarIcon />
                                             </div>
                                             <div className="info-content">
-                                                <div className="info-label">Deadline</div>
-                                                <div className="info-value">{formatDate(project.deadline)}</div>
+                                                <div className="info-label">Start Date</div>
+                                                <div className="info-value">{formatDate(project.createdAt)}</div>
                                             </div>
                                         </div>
-                                    )}
-                                </div>
-
-                                {/* Client Card */}
-                                <div className="info-card">
-                                    <div className="card-header-custom">
-                                        <div className="card-icon">
-                                            <UsersIcon />
+                                        <div className="info-row">
+                                            <div className="info-icon">
+                                                <ClockIcon />
+                                            </div>
+                                            <div className="info-content">
+                                                <div className="info-label">Last Updated</div>
+                                                <div className="info-value">{formatDate(project.updatedAt)}</div>
+                                            </div>
                                         </div>
-                                        <h3 className="card-title-custom">Client Information</h3>
-                                    </div>
-                                    {project.assignedClients && project.assignedClients.length > 0 ? (
-                                        <>
+                                        {project.deadline && (
                                             <div className="info-row">
                                                 <div className="info-icon">
-                                                    <UserIcon />
+                                                    <TargetIcon />
                                                 </div>
                                                 <div className="info-content">
-                                                    <div className="info-label">Client Name</div>
-                                                    <div className="info-value">{project.assignedClients[0].name}</div>
+                                                    <div className="info-label">Deadline</div>
+                                                    <div className="info-value">{formatDate(project.deadline)}</div>
                                                 </div>
                                             </div>
-                                            {project.assignedClients[0].email && (
-                                                <div className="info-row">
-                                                    <div className="info-icon">
-                                                        <MailIcon />
-                                                    </div>
-                                                    <div className="info-content">
-                                                        <div className="info-label">Email</div>
-                                                        <div className="info-value">{project.assignedClients[0].email}</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                            {project.assignedClients[0].phone && (
-                                                <div className="info-row">
-                                                    <div className="info-icon">
-                                                        <PhoneIcon />
-                                                    </div>
-                                                    <div className="info-content">
-                                                        <div className="info-label">Phone</div>
-                                                        <div className="info-value">{project.assignedClients[0].phone}</div>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <div className="info-value">No client assigned</div>
-                                    )}
-                                </div>
-
-                                {/* Tech Stack Card */}
-                                <div className="info-card full-width-card">
-                                    <div className="card-header-custom">
-                                        <div className="card-icon">
-                                            <CodeIcon />
-                                        </div>
-                                        <h3 className="card-title-custom">Technology Stack</h3>
-                                    </div>
-                                    <div className="tech-stack-grid">
-                                        {project.techStack && project.techStack.length > 0 ? (
-                                            project.techStack.map((tech, index) => (
-                                                <span key={index} className="tech-badge">
-                                                    {tech}
-                                                </span>
-                                            ))
-                                        ) : (
-                                            <span className="info-value">No technologies specified</span>
                                         )}
                                     </div>
-                                </div>
 
-                                {/* Team Members Card */}
-                                {project.teamMembers && project.teamMembers.length > 0 && (
-                                    <div className="info-card full-width-card">
+                                    {/* Client Card */}
+                                    <div className="info-card">
                                         <div className="card-header-custom">
                                             <div className="card-icon">
                                                 <UsersIcon />
                                             </div>
-                                            <h3 className="card-title-custom">Team Members</h3>
+                                            <h3 className="card-title-custom">Client Information</h3>
                                         </div>
-                                        <div className="team-grid">
-                                            {project.teamMembers.map((member, index) => (
-                                                <div key={index} className="team-member">
-                                                    <div className="member-avatar">
-                                                        {member.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                        {project.assignedClients && project.assignedClients.length > 0 ? (
+                                            <>
+                                                <div className="info-row">
+                                                    <div className="info-icon">
+                                                        <UserIcon />
                                                     </div>
-                                                    <div className="member-name">{member}</div>
+                                                    <div className="info-content">
+                                                        <div className="info-label">Client Name</div>
+                                                        <div className="info-value">{project.assignedClients[0].name}</div>
+                                                    </div>
                                                 </div>
-                                            ))}
+                                                {project.assignedClients[0].email && (
+                                                    <div className="info-row">
+                                                        <div className="info-icon">
+                                                            <MailIcon />
+                                                        </div>
+                                                        <div className="info-content">
+                                                            <div className="info-label">Email</div>
+                                                            <div className="info-value">{project.assignedClients[0].email}</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {project.assignedClients[0].phone && (
+                                                    <div className="info-row">
+                                                        <div className="info-icon">
+                                                            <PhoneIcon />
+                                                        </div>
+                                                        <div className="info-content">
+                                                            <div className="info-label">Phone</div>
+                                                            <div className="info-value">{project.assignedClients[0].phone}</div>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <div className="info-value">No client assigned</div>
+                                        )}
+                                    </div>
+
+                                    {/* Tech Stack Card */}
+                                    <div className="info-card full-width-card">
+                                        <div className="card-header-custom">
+                                            <div className="card-icon">
+                                                <CodeIcon />
+                                            </div>
+                                            <h3 className="card-title-custom">Technology Stack</h3>
+                                        </div>
+                                        <div className="tech-stack-grid">
+                                            {project.techStack && project.techStack.length > 0 ? (
+                                                project.techStack.map((tech, index) => (
+                                                    <span key={index} className="tech-badge">
+                                                        {tech}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="info-value">No technologies specified</span>
+                                            )}
                                         </div>
                                     </div>
-                                )}
-                            </div>
-                        </div>
 
-                        {/* Right Sidebar */}
-                        <div>
-                            {/* Daily Update Form */}
-                            <div className="update-form-card">
-                                <div className="card-header-custom">
-                                    <div className="card-icon">
-                                        <MessageSquareIcon />
+                                    {/* Deployment Links Card - NEW */}
+                                    <div className="info-card full-width-card">
+                                        <div className="card-header-with-action">
+                                            <div className="card-header-left">
+                                                <div className="card-icon">
+                                                    <LinkIcon />
+                                                </div>
+                                                <h3 className="card-title-custom">Deployment Links</h3>
+                                            </div>
+                                            <button className="edit-button" onClick={handleEditLinks}>
+                                                <EditIcon />
+                                                Edit
+                                            </button>
+                                        </div>
+                                        <div className="info-row">
+                                            <div className="info-icon">
+                                                <CodeIcon />
+                                            </div>
+                                            <div className="info-content">
+                                                <div className="info-label">Development Link</div>
+                                                {deploymentLinks.development ? (
+                                                    <a 
+                                                        href={deploymentLinks.development} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="link-value"
+                                                    >
+                                                        {deploymentLinks.development}
+                                                        <ExternalLinkIcon />
+                                                    </a>
+                                                ) : (
+                                                    <div className="info-value link-value-empty">Not Added Yet</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="info-row">
+                                            <div className="info-icon">
+                                                <TrendingUpIcon />
+                                            </div>
+                                            <div className="info-content">
+                                                <div className="info-label">Production Link</div>
+                                                {deploymentLinks.production ? (
+                                                    <a 
+                                                        href={deploymentLinks.production} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="link-value"
+                                                    >
+                                                        {deploymentLinks.production}
+                                                        <ExternalLinkIcon />
+                                                    </a>
+                                                ) : (
+                                                    <div className="info-value link-value-empty">Not Added Yet</div>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <h3 className="card-title-custom">Add Daily Update</h3>
+
+                                    {/* Team Members Card */}
+                                    {project.teamMembers && project.teamMembers.length > 0 && (
+                                        <div className="info-card full-width-card">
+                                            <div className="card-header-custom">
+                                                <div className="card-icon">
+                                                    <UsersIcon />
+                                                </div>
+                                                <h3 className="card-title-custom">Team Members</h3>
+                                            </div>
+                                            <div className="team-grid">
+                                                {project.teamMembers.map((member, index) => (
+                                                    <div key={index} className="team-member">
+                                                        <div className="member-avatar">
+                                                            {member.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                                        </div>
+                                                        <div className="member-name">{member}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
+                            </div>
 
-                                <form onSubmit={handleSubmitUpdate}>
-                                    <div className="form-group">
-                                        <label className="form-label">Status</label>
-                                        <select
-                                            name="status"
-                                            className="form-select"
-                                            value={updateForm.status}
-                                            onChange={handleInputChange}
-                                        >
-                                            <option value="Pending">Pending</option>
-                                            <option value="In Progress">In Progress</option>
-                                            <option value="On Hold">On Hold</option>
-                                            <option value="Completed">Completed</option>
-                                        </select>
+                            {/* Right Sidebar */}
+                            <div>
+                                {/* Daily Update Form */}
+                                <div className="update-form-card">
+                                    <div className="card-header-custom">
+                                        <div className="card-icon">
+                                            <MessageSquareIcon />
+                                        </div>
+                                        <h3 className="card-title-custom">Add Daily Update</h3>
                                     </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label">Progress</label>
-                                        <div className="range-container">
-                                            <input
-                                                type="range"
-                                                name="progress"
-                                                className="range-input form-input"
-                                                min="0"
-                                                max="100"
-                                                value={updateForm.progress}
+                                    <form onSubmit={handleSubmitUpdate}>
+                                        <div className="form-group">
+                                            <label className="form-label">Status</label>
+                                            <select
+                                                name="status"
+                                                className="form-select"
+                                                value={updateForm.status}
+                                                onChange={handleInputChange}
+                                            >
+                                                <option value="Pending">Pending</option>
+                                                <option value="In Progress">In Progress</option>
+                                                <option value="On Hold">On Hold</option>
+                                                <option value="Completed">Completed</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label className="form-label">Progress</label>
+                                            <div className="range-container">
+                                                <input
+                                                    type="range"
+                                                    name="progress"
+                                                    className="range-input form-input"
+                                                    min="0"
+                                                    max="100"
+                                                    value={updateForm.progress}
+                                                    onChange={handleInputChange}
+                                                />
+                                                <span className="range-value">{updateForm.progress}%</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="form-group">
+                                            <label className="form-label">Comment / Update</label>
+                                            <textarea
+                                                name="comment"
+                                                className="form-textarea"
+                                                placeholder="What did you work on today? Any blockers or achievements?"
+                                                value={updateForm.comment}
                                                 onChange={handleInputChange}
                                             />
-                                            <span className="range-value">{updateForm.progress}%</span>
+                                            <p className="form-help">Describe your progress, challenges, or milestones</p>
                                         </div>
-                                    </div>
 
-                                    <div className="form-group">
-                                        <label className="form-label">Comment / Update</label>
-                                        <textarea
-                                            name="comment"
-                                            className="form-textarea"
-                                            placeholder="What did you work on today? Any blockers or achievements?"
-                                            value={updateForm.comment}
-                                            onChange={handleInputChange}
-                                        />
-                                        <p className="form-help">Describe your progress, challenges, or milestones</p>
-                                    </div>
-
-                                    <button type="submit" className="submit-button" disabled={submitting}>
-                                        <SendIcon />
-                                        {submitting ? 'Submitting...' : 'Submit Update'}
-                                    </button>
-                                </form>
-                            </div>
-
-                            {/* Status History Timeline */}
-                            <div className="timeline-container">
-                                <div className="timeline-header">
-                                    <div className="card-icon">
-                                        <ActivityIcon />
-                                    </div>
-                                    <h3 className="timeline-title">Status History</h3>
+                                        <button type="submit" className="submit-button" disabled={submitting}>
+                                            <SendIcon />
+                                            {submitting ? 'Submitting...' : 'Submit Update'}
+                                        </button>
+                                    </form>
                                 </div>
 
-                                {updates && updates.length > 0 ? (
-                                    <>
-                                        <div className="timeline">
-                                            {updates.map((update, index) => {
-                                                const statusColor = getStatusColor(update.status);
-                                                const updateDate = new Date(update.createdAt);
-                                                const staffName = update.staff?.name || 'Staff';
-                                                return (
-                                                    <div key={update._id || index} className="timeline-item">
-                                                        <div className="timeline-marker">
-                                                            <TrendingUpIcon />
-                                                        </div>
-                                                        <div className="timeline-content">
-                                                            <div className="timeline-date">
-                                                                <CalendarIcon />
-                                                                {formatDate(update.createdAt)} at {updateDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                                                            </div>
-                                                            <div className="timeline-comment">
-                                                                {update.comment}
-                                                            </div>
-                                                            <div className="timeline-meta">
-                                                                <div className="timeline-author">
-                                                                    <div className="author-avatar">
-                                                                        {staffName.split(' ').map(n => n[0]).join('')}
-                                                                    </div>
-                                                                    {staffName}
-                                                                </div>
-                                                                <div
-                                                                    className="timeline-status"
-                                                                    style={{
-                                                                        color: statusColor.color,
-                                                                        background: statusColor.bg,
-                                                                        borderColor: statusColor.border
-                                                                    }}
-                                                                >
-                                                                    {update.status}
-                                                                </div>
-                                                                <div className="timeline-progress">
-                                                                    <TrendingUpIcon />
-                                                                    Progress: {update.progress}%
-                                                                </div>
-                                                            </div>
-
-                                                            {/* Two-Way Replies Section */}
-                                                            <div className="replies-section">
-                                                                <div className="replies-header">
-                                                                    <MessageSquareIcon />
-                                                                    Conversation ({update.replies?.length || 0})
-                                                                </div>
-
-                                                                {update.replies && update.replies.length > 0 && (
-                                                                    <div className="replies-list">
-                                                                        {update.replies.map((reply, ri) => (
-                                                                            <div key={ri} className={`reply-item ${reply.senderType}`}>
-                                                                                <div className="reply-sender">
-                                                                                    {reply.senderType === 'staff'
-                                                                                        ? (reply.staff?.name || 'You')
-                                                                                        : (reply.client?.name || 'Client')}
-                                                                                </div>
-                                                                                <div className="reply-message">{reply.message}</div>
-                                                                                <div className="reply-time">
-                                                                                    {formatDate(reply.createdAt)}
-                                                                                </div>
-                                                                            </div>
-                                                                        ))}
-                                                                    </div>
-                                                                )}
-
-                                                                <div className="reply-input-container">
-                                                                    <input
-                                                                        type="text"
-                                                                        className="reply-input"
-                                                                        placeholder="Reply to client..."
-                                                                        value={replyTexts[update._id] || ''}
-                                                                        onChange={(e) => handleReplyChange(update._id, e.target.value)}
-                                                                    />
-                                                                    <button
-                                                                        className="reply-btn"
-                                                                        disabled={postingReply[update._id]}
-                                                                        onClick={() => handlePostReply(update._id)}
-                                                                    >
-                                                                        {postingReply[update._id] ? '...' : 'Reply'}
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                                {/* Status History Timeline */}
+                                <div className="timeline-container">
+                                    <div className="timeline-header">
+                                        <div className="card-icon">
+                                            <ActivityIcon />
                                         </div>
-                                        {updatesHasMore && (
-                                            <div className="load-more-container">
-                                                <button
-                                                    className="load-more-button"
-                                                    onClick={handleLoadMoreUpdates}
-                                                    disabled={updatesLoading}
-                                                >
-                                                    {updatesLoading ? 'Loading...' : 'Load More'}
-                                                </button>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="empty-timeline">
-                                        <p>No status updates yet. Be the first to add one!</p>
+                                        <h3 className="timeline-title">Status History</h3>
                                     </div>
-                                )}
+
+                                    {updates && updates.length > 0 ? (
+                                        <>
+                                            <div className="timeline">
+                                                {updates.map((update, index) => {
+                                                    const statusColor = getStatusColor(update.status);
+                                                    const updateDate = new Date(update.createdAt);
+                                                    const staffName = update.staff?.name || 'Staff';
+                                                    return (
+                                                        <div key={update._id || index} className="timeline-item">
+                                                            <div className="timeline-marker">
+                                                                <TrendingUpIcon />
+                                                            </div>
+                                                            <div className="timeline-content">
+                                                                <div className="timeline-date">
+                                                                    <CalendarIcon />
+                                                                    {formatDate(update.createdAt)} at {updateDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                                                                </div>
+                                                                <div className="timeline-comment">
+                                                                    {update.comment}
+                                                                </div>
+                                                                <div className="timeline-meta">
+                                                                    <div className="timeline-author">
+                                                                        <div className="author-avatar">
+                                                                            {staffName.split(' ').map(n => n[0]).join('')}
+                                                                        </div>
+                                                                        {staffName}
+                                                                    </div>
+                                                                    <div
+                                                                        className="timeline-status"
+                                                                        style={{
+                                                                            color: statusColor.color,
+                                                                            background: statusColor.bg,
+                                                                            borderColor: statusColor.border
+                                                                        }}
+                                                                    >
+                                                                        {update.status}
+                                                                    </div>
+                                                                    <div className="timeline-progress">
+                                                                        <TrendingUpIcon />
+                                                                        Progress: {update.progress}%
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Two-Way Replies Section */}
+                                                                <div className="replies-section">
+                                                                    <div className="replies-header">
+                                                                        <MessageSquareIcon />
+                                                                        Conversation ({update.replies?.length || 0})
+                                                                    </div>
+
+                                                                    {update.replies && update.replies.length > 0 && (
+                                                                        <div className="replies-list">
+                                                                            {update.replies.map((reply, ri) => (
+                                                                                <div key={ri} className={`reply-item ${reply.senderType}`}>
+                                                                                    <div className="reply-sender">
+                                                                                        {reply.senderType === 'staff'
+                                                                                            ? (reply.staff?.name || 'You')
+                                                                                            : (reply.client?.name || 'Client')}
+                                                                                    </div>
+                                                                                    <div className="reply-message">{reply.message}</div>
+                                                                                    <div className="reply-time">
+                                                                                        {formatDate(reply.createdAt)}
+                                                                                    </div>
+                                                                                </div>
+                                                                            ))}
+                                                                        </div>
+                                                                    )}
+
+                                                                    <div className="reply-input-container">
+                                                                        <input
+                                                                            type="text"
+                                                                            className="reply-input"
+                                                                            placeholder="Reply to client..."
+                                                                            value={replyTexts[update._id] || ''}
+                                                                            onChange={(e) => handleReplyChange(update._id, e.target.value)}
+                                                                        />
+                                                                        <button
+                                                                            className="reply-btn"
+                                                                            disabled={postingReply[update._id]}
+                                                                            onClick={() => handlePostReply(update._id)}
+                                                                        >
+                                                                            {postingReply[update._id] ? '...' : 'Reply'}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                            {updatesHasMore && (
+                                                <div className="load-more-container">
+                                                    <button
+                                                        className="load-more-button"
+                                                        onClick={handleLoadMoreUpdates}
+                                                        disabled={updatesLoading}
+                                                    >
+                                                        {updatesLoading ? 'Loading...' : 'Load More'}
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <div className="empty-timeline">
+                                            <p>No status updates yet. Be the first to add one!</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </>
+            )}
+
+            {/* Deployment Links Modal */}
+            {showLinksModal && (
+                <div className="modal-overlay" onClick={handleCancelLinks}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3 className="modal-title">
+                                <LinkIcon />
+                                Edit Deployment Links
+                            </h3>
+                            <button className="modal-close" onClick={handleCancelLinks}>
+                                <XIcon />
+                            </button>
+                        </div>
+                        <div className="modal-body">
+                            <div className="form-group">
+                                <label className="form-label">Development URL</label>
+                                <input
+                                    type="url"
+                                    name="development"
+                                    className="form-input"
+                                    placeholder="https://dev.example.com"
+                                    value={tempLinks.development}
+                                    onChange={handleLinkInputChange}
+                                />
+                                <p className="form-help">Enter the URL for your development environment</p>
+                            </div>
+                            <div className="form-group">
+                                <label className="form-label">Production URL</label>
+                                <input
+                                    type="url"
+                                    name="production"
+                                    className="form-input"
+                                    placeholder="https://www.example.com"
+                                    value={tempLinks.production}
+                                    onChange={handleLinkInputChange}
+                                />
+                                <p className="form-help">Enter the URL for your production environment</p>
+                            </div>
+                        </div>
+                        <div className="modal-footer">
+                            <button className="modal-button modal-button-cancel" onClick={handleCancelLinks}>
+                                Cancel
+                            </button>
+                            <button className="modal-button modal-button-save" onClick={handleSaveLinks}>
+                                Save Changes
+                            </button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );

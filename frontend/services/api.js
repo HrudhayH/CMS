@@ -270,6 +270,10 @@ export async function updateClientStatus(id, status) {
   });
 }
 
+export async function getClientWithProjects(id) {
+  return fetchWithAuth(`/admin/clients/${id}/projects`);
+}
+
 // ============================================
 // Staff APIs
 // ============================================
@@ -344,6 +348,14 @@ export async function updateStaffStatus(id, status) {
     body: JSON.stringify({ status }),
   });
 }
+
+export async function updateStaffDeploymentLinks(projectId, links) {
+  return fetchWithStaffAuth(`/staff/projects/${projectId}/deployment-links`, {
+    method: 'PUT',
+    body: JSON.stringify(links),
+  });
+}
+
 
 // ============================================
 // Client Portal APIs (uses clientToken)

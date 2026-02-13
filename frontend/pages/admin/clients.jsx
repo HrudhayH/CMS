@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
 import {
@@ -36,6 +37,7 @@ const TrashIcon = () => (
 );
 
 export default function Clients() {
+  const router = useRouter();
   const [clients, setClients] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -57,7 +59,10 @@ export default function Clients() {
     name: '',
     email: '',
     password: '',
-    phone: ''
+    phone: '',
+    company: '',
+    gst: '',
+    address: ''
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -85,7 +90,7 @@ export default function Clients() {
 
   const openAddModal = () => {
     setEditingClient(null);
-    setFormData({ name: '', email: '', password: '', phone: '' });
+    setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' });
     setIsModalOpen(true);
   };
 
@@ -95,7 +100,10 @@ export default function Clients() {
       name: client.name,
       email: client.email,
       password: '', // Password is not shown during edit
-      phone: client.phone || ''
+      phone: client.phone || '',
+      company: client.company || '',
+      gst: client.gst || '',
+      address: client.address || ''
     });
     setIsModalOpen(true);
   };
@@ -125,15 +133,15 @@ export default function Clients() {
     try {
       if (editingClient) {
         // Only send name, email, and phone for updates (no password)
-        const { name, email, phone } = formData;
-        await updateClient(editingClient._id, { name, email, phone });
+        const { name, email, phone, company, gst, address } = formData;
+        await updateClient(editingClient._id, { name, email, phone, company, gst, address });
         setSuccess('Client updated successfully');
       } else {
         await createClient(formData);
         setSuccess('Client created successfully');
       }
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '', phone: '' }); // Clear form including password
+      setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' }); // Clear form including password
       fetchClients(pagination.page);
     } catch (err) {
       setError(err.message || 'Failed to save client');
@@ -182,6 +190,26 @@ export default function Clients() {
       )
     },
     {
+      key: 'projects',
+      title: 'Projects',
+      render: (_, row) => (
+        <div className="flex flex-col gap-1">
+          {row.projects && row.projects.length > 0 ? (
+            <>
+              <span className="font-medium text-blue-600">
+                {row.projects.length} Project{row.projects.length !== 1 ? 's' : ''}
+              </span>
+              <span className="text-xs text-gray-500 truncate max-w-[200px]">
+                {row.projects.map(p => p.title).join(', ')}
+              </span>
+            </>
+          ) : (
+            <span className="text-gray-400 text-sm">No projects</span>
+          )}
+        </div>
+      )
+    },
+    {
       key: 'status',
       title: 'Status',
       render: (value, row) => (
@@ -208,6 +236,16 @@ export default function Clients() {
       align: 'right',
       render: (_, row) => (
         <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
+          <button
+            className="btn btn-ghost btn-icon-sm"
+            onClick={() => router.push(`/admin/clients/${row._id}`)}
+            title="View Details"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
           <button
             className="btn btn-ghost btn-icon-sm"
             onClick={() => openEditModal(row)}
@@ -415,6 +453,43 @@ export default function Clients() {
               onChange={handleFormChange}
               placeholder="Enter client phone number"
               maxLength={20}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="form-group">
+              <label className="form-label">Company</label>
+              <input
+                type="text"
+                name="company"
+                className="form-input"
+                value={formData.company}
+                onChange={handleFormChange}
+                placeholder="Company Name"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">GST Number</label>
+              <input
+                type="text"
+                name="gst"
+                className="form-input"
+                value={formData.gst}
+                onChange={handleFormChange}
+                placeholder="GST Number"
+              />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Address</label>
+            <textarea
+              name="address"
+              className="form-input"
+              value={formData.address}
+              onChange={handleFormChange}
+              placeholder="Full Address"
+              rows="3"
             />
           </div>
 

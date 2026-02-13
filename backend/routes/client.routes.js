@@ -6,7 +6,8 @@ const {
   deleteClient,
   updateClientStatus,
   getClients,
-  getAllClients
+  getAllClients,
+  getClientProjects
 } = require('../controllers/client.controller');
 
 router.get('/', getClients);
@@ -15,5 +16,6 @@ router.post('/', createClient);
 router.put('/:id', updateClient);
 router.delete('/:id', deleteClient);
 router.patch('/:id/status', updateClientStatus);
+router.get('/:id/projects', getClientProjects);
 
 module.exports = router;

@@ -1,8 +1,9 @@
 const Client = require('../models/Client');
+const Project = require('../models/Project');
 
 const createClient = async (req, res) => {
   try {
-    const { name, email, password, phone } = req.body;
+    const { name, email, password, phone, company, gst, address } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
@@ -18,7 +19,15 @@ const createClient = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Client with this email already exists.' });
     }
 
-    const client = await Client.create({ name, email, password, phone: phone || '' });
+    const client = await Client.create({
+      name,
+      email,
+      password,
+      phone: phone || '',
+      company: company || '',
+      gst: gst || '',
+      address: address || ''
+    });
 
     // Return client without password
     const clientResponse = {
@@ -40,7 +49,7 @@ const createClient = async (req, res) => {
 const updateClient = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone } = req.body;
+    const { name, email, phone, company, gst, address } = req.body;
 
     // Basic phone validation (if provided)
     if (phone !== undefined && phone !== null && (typeof phone !== 'string' || phone.length > 20)) {
@@ -48,6 +57,10 @@ const updateClient = async (req, res) => {
     }
 
     const updateData = { name, email };
+    if (phone !== undefined) updateData.phone = phone;
+    if (company !== undefined) updateData.company = company;
+    if (gst !== undefined) updateData.gst = gst;
+    if (address !== undefined) updateData.address = address;
     if (phone !== undefined) {
       updateData.phone = phone;
     }
@@ -143,17 +156,62 @@ const getClients = async (req, res) => {
       Client.countDocuments(query)
     ]);
 
+    // Fetch projects for these clients
+    const clientIds = clients.map(client => client._id);
+    const projects = await Project.find({
+      assignedClients: { $in: clientIds }
+    })
+      .select('title status assignedClients')
+      .lean();
+
+    // Map projects to clients
+    const clientsWithProjects = clients.map(client => {
+      const clientProjects = projects.filter(project =>
+        project.assignedClients.some(id => id.toString() === client._id.toString())
+      );
+      return {
+        ...client,
+        projects: clientProjects
+      };
+    });
+
     const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
-      data: clients,
+      data: clientsWithProjects,
       pagination: {
         page,
         limit,
         total,
         totalPages,
         hasMore: page < totalPages
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get client details with projects
+const getClientProjects = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const client = await Client.findById(id).lean();
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found.' });
+    }
+
+    const projects = await Project.find({
+      assignedClients: id
+    }).sort({ createdAt: -1 }).lean();
+
+    res.json({
+      success: true,
+      data: {
+        client,
+        projects
       }
     });
   } catch (error) {
@@ -171,4 +229,4 @@ const getAllClients = async (req, res) => {
   }
 };
 
-module.exports = { createClient, updateClient, deleteClient, updateClientStatus, getClients, getAllClients };
+module.exports = { createClient, updateClient, deleteClient, updateClientStatus, getClients, getAllClients, getClientProjects };

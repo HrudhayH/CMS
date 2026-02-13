@@ -112,6 +112,33 @@ const projectSchema = new mongoose.Schema(
       default: 0,
       min: 0,
       max: 100
+    },
+
+    // Deployment Links
+    developmentLink: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow empty
+          return /^https?:\/\/.+/.test(v); // Basic URL validation
+        },
+        message: 'Invalid development URL format'
+      }
+    },
+
+    productionLink: {
+      type: String,
+      trim: true,
+      default: '',
+      validate: {
+        validator: function(v) {
+          if (!v) return true; // Allow empty
+          return /^https?:\/\/.+/.test(v); // Basic URL validation
+        },
+        message: 'Invalid production URL format'
+      }
     }
   },
   {
