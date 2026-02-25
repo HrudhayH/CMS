@@ -22,6 +22,18 @@ const staffSchema = new mongoose.Schema(
       trim: true
     },
 
+    role: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
+    department: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+
     password: {
       type: String,
       required: true,

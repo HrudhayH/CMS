@@ -25,34 +25,7 @@ const seedRoadmap = async () => {
 
         const roadmap = new Roadmap({
             project: project._id,
-            phases: [
-                {
-                    name: "Phase 1: Foundation Setup",
-                    startDate: new Date("2024-03-01"),
-                    endDate: new Date("2024-03-15"),
-                    status: "Completed",
-                    progress: 100,
-                    latestComment: "Initial setup completed ahead of schedule.",
-                    milestones: [
-                        { title: "Database Schema Design", status: "Completed", dueDate: new Date("2024-03-05") },
-                        { title: "API Configuration", status: "Completed", dueDate: new Date("2024-03-10") },
-                        { title: "Authentication System", status: "Completed", dueDate: new Date("2024-03-14") }
-                    ]
-                },
-                {
-                    name: "Phase 2: Core Features Implementation",
-                    startDate: new Date("2024-03-16"),
-                    endDate: new Date("2024-04-15"),
-                    status: "In Progress",
-                    progress: 45,
-                    latestComment: "Currently working on the user dashboard components.",
-                    milestones: [
-                        { title: "User Dashboard", status: "In Progress", dueDate: new Date("2024-03-25") },
-                        { title: "Reporting Module", status: "Not Started", dueDate: new Date("2024-04-05") },
-                        { title: "Notification System", status: "Not Started", dueDate: new Date("2024-04-12") }
-                    ]
-                }
-            ]
+            phases: []
         });
 
         await roadmap.save();

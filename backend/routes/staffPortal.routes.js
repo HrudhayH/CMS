@@ -8,6 +8,7 @@ const router = express.Router();
 const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
 const {
+  getStaffProfile,
   getStaffDashboardStats,
   getStaffRecentProjects,
   getStaffProjects,
@@ -30,6 +31,9 @@ const {
 // Apply auth and role middleware to all staff routes
 router.use(authMiddleware);
 router.use(roleMiddleware(['staff']));
+
+// Profile endpoint
+router.get('/profile', getStaffProfile);
 
 // Dashboard endpoints
 router.get('/dashboard/stats', getStaffDashboardStats);

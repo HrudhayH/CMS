@@ -10,6 +10,8 @@ const {
   getClientAllUpdates,
   getClientPaymentSummary,
   getClientPaymentHistory,
+  getClientProjectRoadmap,
+  getClientProfile,
   addClientUpdateReply
 } = require('../controllers/clientPortal.controller');
 
@@ -17,12 +19,16 @@ const {
 router.use(authMiddleware);
 router.use(roleMiddleware(['client']));
 
+// Profile
+router.get('/profile', getClientProfile);
+
 // Dashboard
 router.get('/dashboard/stats', getClientDashboardStats);
 
 // Projects
 router.get('/projects', getClientProjects);
 router.get('/projects/:id', getClientProject);
+router.get('/projects/:id/roadmap', getClientProjectRoadmap);
 router.get('/projects/:id/updates', getClientProjectUpdates);
 router.post('/projects/:id/updates/:updateId/reply', addClientUpdateReply);
 

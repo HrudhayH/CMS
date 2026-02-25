@@ -331,6 +331,10 @@ export async function getStaffProject(id) {
   return fetchWithStaffAuth(`/staff/projects/${id}`);
 }
 
+export async function getStaffProfile() {
+  return fetchWithStaffAuth('/staff/profile');
+}
+
 export async function addStaffProjectUpdate(projectId, updateData) {
   return fetchWithStaffAuth(`/staff/projects/${projectId}/update`, {
     method: 'POST',
@@ -385,6 +389,10 @@ export async function addClientUpdateReply(projectId, updateId, message) {
     method: 'POST',
     body: JSON.stringify({ message }),
   });
+}
+
+export async function getClientProfile() {
+  return fetchWithClientAuth('/client/profile');
 }
 
 export async function addStaffUpdateReply(projectId, updateId, message) {
@@ -482,3 +490,79 @@ export async function getClientPaymentSummary() {
 export async function getClientPaymentHistory(page = 1, limit = 10) {
   return fetchWithClientAuth(`/client/payments/history?page=${page}&limit=${limit}`);
 }
+
+// ============================================
+// Project Comment APIs (Shared by Client & Staff)
+// ============================================
+export async function getProjectComments(projectId, page = 1, limit = 20) {
+  const token = typeof window !== 'undefined' ?
+    localStorage.getItem('clientToken') || localStorage.getItem('staffToken') : null;
+
+  const response = await fetch(
+    `${API_URL}/projects/${projectId}/comments?page=${page}&limit=${limit}`,
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    }
+  );
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to fetch comments');
+  return data;
+}
+
+export async function addProjectComment(projectId, message) {
+  const token = typeof window !== 'undefined' ?
+    localStorage.getItem('clientToken') || localStorage.getItem('staffToken') : null;
+
+  const response = await fetch(`${API_URL}/projects/${projectId}/comments`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    },
+    body: JSON.stringify({ message })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to add comment');
+  return data;
+}
+
+export async function updateCommentStatus(commentId, status) {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('staffToken') : null;
+
+  const response = await fetch(`${API_URL}/comments/${commentId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    },
+    body: JSON.stringify({ status })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to update status');
+  return data;
+}
+
+export async function deleteProjectComment(commentId) {
+  const token = typeof window !== 'undefined' ?
+    localStorage.getItem('clientToken') || localStorage.getItem('staffToken') : null;
+
+  const response = await fetch(`${API_URL}/comments/${commentId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` })
+    }
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to delete comment');
+  return data;
+}
+
+

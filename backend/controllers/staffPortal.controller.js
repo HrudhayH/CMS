@@ -4,6 +4,37 @@
  * All endpoints filter data by the logged-in staff member (req.user.id).
  */
 const Project = require('../models/Project');
+const Staff = require('../models/Staff');
+
+/**
+ * Get the logged-in staff member's profile and assigned projects.
+ * GET /staff/profile
+ */
+const getStaffProfile = async (req, res) => {
+  try {
+    const staffId = req.user.id;
+
+    const staff = await Staff.findById(staffId).lean();
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff member not found.' });
+    }
+
+    // Remove password just in case (should already be excluded by select: false)
+    delete staff.password;
+
+    const projects = await Project.find({ assignedStaff: staffId })
+      .select('title status startDate endDate')
+      .sort({ updatedAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: { staff, projects }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
 
 /**
  * Get dashboard stats for the logged-in staff member.
@@ -296,37 +327,37 @@ const addStaffUpdateReply = async (req, res) => {
  */
 const updateDeploymentLinks = async (req, res) => {
   try {
-   const { id } = req.params;
+    const { id } = req.params;
     const { developmentLink, productionLink } = req.body;
 
     // Validate inputs
     if (!developmentLink && !productionLink) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'At least one deployment link is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'At least one deployment link is required'
       });
     }
 
     // Validate URL format if provided
     const urlRegex = /^https?:\/\/.+/;
-    
+
     if (developmentLink && !urlRegex.test(developmentLink)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid development URL format. Must start with http:// or https://' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid development URL format. Must start with http:// or https://'
       });
     }
 
     if (productionLink && !urlRegex.test(productionLink)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid production URL format. Must start with http:// or https://' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid production URL format. Must start with http:// or https://'
       });
     }
 
     // Find and update project
     const project = await Project.findByIdAndUpdate(
-       id,
+      id,
       {
         developmentLink: developmentLink || '',
         productionLink: productionLink || ''
@@ -335,9 +366,9 @@ const updateDeploymentLinks = async (req, res) => {
     );
 
     if (!project) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Project not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Project not found'
       });
     }
 
@@ -350,15 +381,16 @@ const updateDeploymentLinks = async (req, res) => {
     });
   } catch (error) {
     console.error('[updateDeploymentLinks] Error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Server error updating deployment links',
-      error: error.message 
+      error: error.message
     });
   }
 };
 
 module.exports = {
+  getStaffProfile,
   getStaffDashboardStats,
   getStaffRecentProjects,
   getStaffProjects,

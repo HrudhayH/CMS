@@ -238,6 +238,36 @@ const getClientPaymentHistory = async (req, res) => {
   }
 };
 
+// Get client project roadmap (read-only)
+const getClientProjectRoadmap = async (req, res) => {
+  try {
+    const clientId = req.user.id;
+    const { id } = req.params;
+
+    // Verify that the client has access to this project
+    const project = await Project.findOne({ _id: id, assignedClients: clientId });
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found or access denied.' });
+    }
+
+    // Import the Roadmap model
+    const Roadmap = require('../models/Roadmap');
+
+    // Fetch roadmap for this project
+    const roadmap = await Roadmap.findOne({ project: id });
+
+    if (!roadmap) {
+      // Return null if no roadmap exists yet
+      return res.status(200).json(null);
+    }
+
+    // Return the roadmap
+    res.json(roadmap);
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
 // Add client reply to a daily update
 const addClientUpdateReply = async (req, res) => {
   try {
@@ -278,6 +308,34 @@ const addClientUpdateReply = async (req, res) => {
   }
 };
 
+// Get logged-in client profile and their projects
+const getClientProfile = async (req, res) => {
+  try {
+    const clientId = req.user.id;
+
+    const [client, projects] = await Promise.all([
+      Client.findById(clientId).select('-password'),
+      Project.find({ assignedClients: clientId })
+        .populate('assignedStaff', 'name email')
+        .sort({ createdAt: -1 })
+    ]);
+
+    if (!client) {
+      return res.status(404).json({ success: false, message: 'Client not found.' });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        client,
+        projects
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
 module.exports = {
   clientLogin,
   getClientDashboardStats,
@@ -287,5 +345,7 @@ module.exports = {
   getClientAllUpdates,
   getClientPaymentSummary,
   getClientPaymentHistory,
+  getClientProjectRoadmap,
+  getClientProfile,
   addClientUpdateReply
 };

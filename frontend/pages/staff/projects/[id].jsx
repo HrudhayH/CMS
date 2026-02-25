@@ -2,7 +2,7 @@ import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
 import StaffLayout from '../../../layouts/staffLayout';
 import { Alert } from '../../../components';
-import RoadmapTab from '../../../components/staff/RoadmapTab';
+import { useStaffAuth } from '../../../hooks/useStaffAuth';
 import { formatDate } from '../../../utils/helpers';
 // import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates, addStaffUpdateReply } from '../../../services/api';
 
@@ -163,6 +163,7 @@ const XIcon = () => (
 export default function StaffProjectDetails() {
     const router = useRouter();
     const { id } = router.query;
+    const { user: authUser } = useStaffAuth();
 
     const [project, setProject] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -1457,14 +1458,13 @@ const handleSaveLinks = async () => {
                             Overview
                         </button>
                         <button
-                            className={`tab-button ${activeTab === 'roadmap' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('roadmap')}
+                            className="tab-button"
+                            onClick={() => router.push(`/staff/projects/${id}/roadmap`)}
+                            style={{ color: '#3b82f6', cursor: 'pointer' }}
                         >
-                            Roadmap
+                            📋 View Roadmap & Support
                         </button>
                     </div>
-
-                    {activeTab === 'roadmap' && <RoadmapTab projectId={id} />}
 
                     {/* Main Content Layout */}
                     {activeTab === 'overview' && (
