@@ -112,7 +112,8 @@ export default function Projects() {
     endDate: '',
     assignedClients: [],
     assignedStaff: [],
-    techStack: []
+    techStack: [],
+    referenceLink: ''
   });
   const [formLoading, setFormLoading] = useState(false);
 
@@ -393,7 +394,8 @@ export default function Projects() {
       endDate: '',
       assignedClients: [],
       assignedStaff: [],
-      techStack: []
+      techStack: [],
+      referenceLink: ''
     });
     setIsModalOpen(true);
   };
@@ -408,7 +410,8 @@ export default function Projects() {
       endDate: project.endDate || '',
       assignedClients: project.assignedClients?.map(c => c._id) || [],
       assignedStaff: project.assignedStaff?.map(s => s._id) || [],
-      techStack: project.techStack || []
+      techStack: project.techStack || [],
+      referenceLink: project.referenceLink || ''
     });
     setIsModalOpen(true);
   };
@@ -442,6 +445,44 @@ export default function Projects() {
       return { ...prev, techStack: newTechStack };
     });
   };
+
+  // Custom tech stack input
+  const [techInput, setTechInput] = useState('');
+  const [showTechSuggestions, setShowTechSuggestions] = useState(false);
+  const techInputRef = useRef(null);
+
+  const addTechTag = (value) => {
+    const trimmed = value.trim();
+    if (!trimmed) return;
+    // Case-insensitive duplicate check
+    const exists = formData.techStack.some(t => t.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      setFormData(prev => ({ ...prev, techStack: [...prev.techStack, trimmed] }));
+    }
+    setTechInput('');
+    setShowTechSuggestions(false);
+  };
+
+  const removeTechTag = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      techStack: prev.techStack.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleTechInputKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ',') {
+      e.preventDefault();
+      addTechTag(techInput);
+    } else if (e.key === 'Backspace' && !techInput && formData.techStack.length > 0) {
+      removeTechTag(formData.techStack.length - 1);
+    }
+  };
+
+  const filteredSuggestions = TECH_STACK_OPTIONS.filter(
+    opt => opt.toLowerCase().includes(techInput.toLowerCase()) &&
+      !formData.techStack.some(t => t.toLowerCase() === opt.toLowerCase())
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1063,6 +1104,19 @@ export default function Projects() {
           </div>
 
           <div className="form-group">
+            <label className="form-label">Reference Link</label>
+            <input
+              type="url"
+              name="referenceLink"
+              className="form-input"
+              value={formData.referenceLink}
+              onChange={handleFormChange}
+              placeholder="e.g. Figma, Google Drive, or any external URL"
+            />
+            <p className="form-hint">Optional link to Figma designs, Drive docs, Notion pages, etc.</p>
+          </div>
+
+          <div className="form-group">
             <label className="form-label">Status</label>
             <select
               name="status"
@@ -1211,43 +1265,87 @@ export default function Projects() {
 
           <div className="form-group">
             <label className="form-label">Tech Stack</label>
-            <div
-              style={{
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: 'var(--border-radius-md, 6px)',
-                maxHeight: '200px',
-                overflowY: 'auto',
-                padding: 'var(--spacing-2, 8px)'
-              }}
-            >
-              {TECH_STACK_OPTIONS.map(tech => (
-                <label
-                  key={tech}
+            <div style={{ position: 'relative' }}>
+              <div
+                onClick={() => techInputRef.current?.focus()}
+                style={{
+                  border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: 'var(--border-radius-md, 6px)',
+                  padding: '6px 8px',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  alignItems: 'center',
+                  minHeight: '42px',
+                  cursor: 'text',
+                  transition: 'border-color 0.2s'
+                }}
+              >
+                {formData.techStack.map((tech, idx) => (
+                  <span key={idx} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '4px',
+                    padding: '3px 10px', fontSize: '12px', fontWeight: '600',
+                    color: '#1e40af', backgroundColor: '#eff6ff',
+                    border: '1px solid #bfdbfe', borderRadius: '9999px'
+                  }}>
+                    {tech}
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); removeTechTag(idx); }}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        padding: '0 2px', fontSize: '14px', lineHeight: 1,
+                        color: '#6b7280', fontWeight: '700'
+                      }}
+                      title="Remove"
+                    >×</button>
+                  </span>
+                ))}
+                <input
+                  ref={techInputRef}
+                  type="text"
+                  value={techInput}
+                  onChange={(e) => { setTechInput(e.target.value); setShowTechSuggestions(true); }}
+                  onKeyDown={handleTechInputKeyDown}
+                  onFocus={() => setShowTechSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowTechSuggestions(false), 150)}
+                  placeholder={formData.techStack.length === 0 ? 'Type and press Enter to add…' : ''}
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: 'var(--spacing-2, 8px)',
-                    cursor: 'pointer',
-                    borderRadius: 'var(--border-radius-sm, 4px)',
-                    transition: 'background-color 0.2s'
+                    border: 'none', outline: 'none', flex: 1, minWidth: '120px',
+                    padding: '4px 0', fontSize: '13px', backgroundColor: 'transparent'
                   }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-bg-hover, #f9fafb)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <input
-                    type="checkbox"
-                    checked={formData.techStack.includes(tech)}
-                    onChange={() => handleTechStackChange(tech)}
-                    style={{ marginRight: 'var(--spacing-2, 8px)' }}
-                  />
-                  <span>{tech}</span>
-                </label>
-              ))}
+                />
+              </div>
+
+              {/* Suggestions dropdown */}
+              {showTechSuggestions && filteredSuggestions.length > 0 && (
+                <div style={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 10,
+                  backgroundColor: 'white', border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                  maxHeight: '160px', overflowY: 'auto', marginTop: '4px'
+                }}>
+                  {filteredSuggestions.map(opt => (
+                    <div
+                      key={opt}
+                      onMouseDown={(e) => { e.preventDefault(); addTechTag(opt); }}
+                      style={{
+                        padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
+                        transition: 'background-color 0.15s'
+                      }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'white'}
+                    >
+                      {opt}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
             <p className="form-hint">
               {formData.techStack.length > 0
                 ? `${formData.techStack.length} technolog${formData.techStack.length !== 1 ? 'ies' : 'y'} selected`
-                : 'Select one or more technologies used in this project'
+                : 'Type a technology and press Enter, or pick from suggestions'
               }
             </p>
           </div>

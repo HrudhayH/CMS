@@ -233,10 +233,11 @@ export async function updateProjectStatus(id, status) {
 // ============================================
 // Client APIs
 // ============================================
-export async function getClients(page = 1, limit = 10, search = '', status = '') {
+export async function getClients(page = 1, limit = 10, search = '', status = '', filters = {}) {
   const params = new URLSearchParams({ page, limit });
   if (search) params.append('search', search);
   if (status) params.append('status', status);
+  if (filters.company) params.append('company', filters.company);
   return fetchWithAuth(`/admin/clients?${params.toString()}`);
 }
 
@@ -282,10 +283,12 @@ export async function getClientWithProjects(id) {
 // ============================================
 // Staff APIs
 // ============================================
-export async function getStaff(page = 1, limit = 10, search = '', status = '') {
+export async function getStaff(page = 1, limit = 10, search = '', status = '', filters = {}) {
   const params = new URLSearchParams({ page, limit });
   if (search) params.append('search', search);
   if (status) params.append('status', status);
+  if (filters.role) params.append('role', filters.role);
+  if (filters.department) params.append('department', filters.department);
   return fetchWithAuth(`/admin/staff?${params.toString()}`);
 }
 

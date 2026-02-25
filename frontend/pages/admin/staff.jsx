@@ -97,6 +97,8 @@ export default function Staff() {
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({ role: '', department: '' });
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -115,6 +117,14 @@ export default function Staff() {
   });
   const [formLoading, setFormLoading] = useState(false);
   const [generatedPassword, setGeneratedPassword] = useState('');
+  const [copiedPassword, setCopiedPassword] = useState(false);
+
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+    });
+  };
 
   // Get status color
   const getStatusColor = (status) => {
@@ -149,10 +159,10 @@ export default function Staff() {
     return colors[index];
   };
 
-  const fetchStaff = useCallback(async (page = 1, search = '', status = '') => {
+  const fetchStaff = useCallback(async (page = 1, search = '', status = '', filters = {}) => {
     try {
       setLoading(true);
-      const response = await getStaff(page, ITEMS_PER_PAGE, search, status);
+      const response = await getStaff(page, ITEMS_PER_PAGE, search, status, filters);
       setStaff(response.data);
       setPagination(response.pagination);
       setError('');
@@ -164,16 +174,17 @@ export default function Staff() {
   }, []);
 
   useEffect(() => {
-    fetchStaff(1, searchQuery, statusFilter);
-  }, [searchQuery, statusFilter, fetchStaff]);
+    fetchStaff(1, searchQuery, statusFilter, advancedFilters);
+  }, [searchQuery, statusFilter, advancedFilters, fetchStaff]);
 
   const handlePageChange = (page) => {
-    fetchStaff(page, searchQuery, statusFilter);
+    fetchStaff(page, searchQuery, statusFilter, advancedFilters);
   };
 
   const clearFilters = () => {
     setSearchQuery('');
     setStatusFilter('');
+    setAdvancedFilters({ role: '', department: '' });
   };
 
   const openAddModal = () => {
@@ -230,7 +241,7 @@ export default function Staff() {
         setIsModalOpen(false);
       }
       setFormData({ name: '', email: '', phone: '', password: '', role: '', department: '' });
-      fetchStaff(pagination.page);
+      fetchStaff(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to save staff member');
     } finally {
@@ -246,7 +257,7 @@ export default function Staff() {
       setSuccess('Staff member deleted successfully');
       setIsDeleteDialogOpen(false);
       setDeletingStaff(null);
-      fetchStaff(pagination.page);
+      fetchStaff(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to delete staff member');
     }
@@ -256,13 +267,13 @@ export default function Staff() {
     try {
       await updateStaffStatus(staffId, newStatus);
       setSuccess('Status updated successfully');
-      fetchStaff(pagination.page);
+      fetchStaff(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to update status');
     }
   };
 
-  const activeFiltersCount = [searchQuery, statusFilter].filter(Boolean).length;
+  const activeFiltersCount = [searchQuery, statusFilter, advancedFilters.role, advancedFilters.department].filter(Boolean).length;
 
   const columns = [
     {
@@ -343,6 +354,41 @@ export default function Staff() {
           }}>
             <PhoneIcon />
             <span style={{ fontWeight: '500' }}>{value}</span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'projectCount',
+      title: 'Projects',
+      render: (value, row) => {
+        const count = value || 0;
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: '28px', height: '28px', padding: '0 8px',
+              fontSize: '13px', fontWeight: '700',
+              color: count > 0 ? '#1e40af' : '#9ca3af',
+              backgroundColor: count > 0 ? '#eff6ff' : '#f9fafb',
+              border: `1px solid ${count > 0 ? '#bfdbfe' : '#e5e7eb'}`,
+              borderRadius: '9999px'
+            }}>
+              {count}
+            </span>
+            {count > 0 && (
+              <button
+                type="button"
+                onClick={() => router.push(`/admin/staff/${row._id}`)}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', fontWeight: '500', color: '#667eea',
+                  padding: 0, textDecoration: 'underline'
+                }}
+              >
+                View
+              </button>
+            )}
           </div>
         );
       }
@@ -578,6 +624,26 @@ export default function Staff() {
               ))}
             </select>
 
+            <button
+              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              style={{
+                padding: '10px 16px',
+                fontSize: 'var(--font-size-sm, 14px)',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: showAdvancedFilters ? '#fffbeb' : 'white',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontWeight: '500',
+                color: showAdvancedFilters ? '#f59e0b' : 'var(--color-text-secondary)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <FilterIcon /> Filters
+            </button>
+
             {activeFiltersCount > 0 && (
               <button
                 onClick={clearFilters}
@@ -609,6 +675,59 @@ export default function Staff() {
           </div>
         </div>
 
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div style={{
+            display: 'flex',
+            gap: 'var(--spacing-3, 12px)',
+            marginTop: 'var(--spacing-3, 12px)',
+            paddingTop: 'var(--spacing-3, 12px)',
+            borderTop: '1px solid var(--color-border, #e5e7eb)',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ flex: '1', minWidth: '160px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Role</label>
+              <input
+                type="text"
+                placeholder="e.g. Developer"
+                value={advancedFilters.role}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, role: e.target.value }))}
+                style={{
+                  width: '100%', padding: '8px 12px', fontSize: '13px',
+                  border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
+                }}
+              />
+            </div>
+            <div style={{ flex: '1', minWidth: '160px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Department</label>
+              <input
+                type="text"
+                placeholder="e.g. Engineering"
+                value={advancedFilters.department}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, department: e.target.value }))}
+                style={{
+                  width: '100%', padding: '8px 12px', fontSize: '13px',
+                  border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
+                }}
+              />
+            </div>
+            <button
+              onClick={() => setAdvancedFilters({ role: '', department: '' })}
+              style={{
+                padding: '8px 14px', fontSize: '13px',
+                border: '1px solid #fecaca', borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: '#fef2f2', color: '#dc2626',
+                cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap'
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+
         {/* Active Filters Display */}
         {activeFiltersCount > 0 && (
           <div style={{
@@ -631,7 +750,7 @@ export default function Staff() {
                 borderRadius: 'var(--border-radius-full, 9999px)'
               }}>
                 <FilterIcon style={{ width: 12, height: 12 }} />
-                Search: "{searchQuery}"
+                Search: &quot;{searchQuery}&quot;
               </span>
             )}
             {statusFilter && (
@@ -649,6 +768,28 @@ export default function Staff() {
               }}>
                 <FilterIcon style={{ width: 12, height: 12 }} />
                 Status: {statusFilter}
+              </span>
+            )}
+            {advancedFilters.role && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', fontSize: 'var(--font-size-xs, 12px)', fontWeight: '500',
+                color: '#92400e', backgroundColor: '#fef3c7',
+                border: '1px solid #fde68a', borderRadius: 'var(--border-radius-full, 9999px)'
+              }}>
+                <FilterIcon style={{ width: 12, height: 12 }} />
+                Role: {advancedFilters.role}
+              </span>
+            )}
+            {advancedFilters.department && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', fontSize: 'var(--font-size-xs, 12px)', fontWeight: '500',
+                color: '#92400e', backgroundColor: '#fef3c7',
+                border: '1px solid #fde68a', borderRadius: 'var(--border-radius-full, 9999px)'
+              }}>
+                <FilterIcon style={{ width: 12, height: 12 }} />
+                Dept: {advancedFilters.department}
               </span>
             )}
           </div>
@@ -800,6 +941,24 @@ export default function Staff() {
                 >
                   <DiceIcon /> Generate
                 </button>
+                {formData.password && (
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(formData.password)}
+                    style={{
+                      padding: '8px 14px', borderRadius: '6px',
+                      border: `1px solid ${copiedPassword ? '#a7f3d0' : 'var(--color-border)'}`,
+                      background: copiedPassword ? '#d1fae5' : '#f9fafb',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                      fontSize: '12px', fontWeight: '600',
+                      color: copiedPassword ? '#065f46' : '#6b7280', whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                    title="Copy password"
+                  >
+                    {copiedPassword ? '✓ Copied' : '📋 Copy'}
+                  </button>
+                )}
               </div>
               <p className="form-hint">Leave blank to auto-generate a secure password on the server</p>
             </div>

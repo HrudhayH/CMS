@@ -168,7 +168,7 @@ const getClients = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { search, status } = req.query;
+    const { search, status, company } = req.query;
 
     // Build query conditions
     const query = {};
@@ -187,6 +187,11 @@ const getClients = async (req, res) => {
     // Filter by status
     if (status && ['Active', 'Paused', 'Completed'].includes(status)) {
       query.status = status;
+    }
+
+    // Filter by company (partial match)
+    if (company && company.trim()) {
+      query.company = new RegExp(company.trim(), 'i');
     }
 
     const [clients, total] = await Promise.all([

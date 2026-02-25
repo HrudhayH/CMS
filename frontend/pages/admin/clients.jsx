@@ -56,6 +56,8 @@ export default function Clients() {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({ company: '' });
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -74,11 +76,19 @@ export default function Clients() {
     address: ''
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [copiedPassword, setCopiedPassword] = useState(false);
 
-  const fetchClients = useCallback(async (page = 1, search = '', status = '') => {
+  const copyToClipboard = (text) => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedPassword(true);
+      setTimeout(() => setCopiedPassword(false), 2000);
+    });
+  };
+
+  const fetchClients = useCallback(async (page = 1, search = '', status = '', filters = {}) => {
     try {
       setLoading(true);
-      const response = await getClients(page, ITEMS_PER_PAGE, search, status);
+      const response = await getClients(page, ITEMS_PER_PAGE, search, status, filters);
       setClients(response.data);
       setPagination(response.pagination);
       setError('');
@@ -90,11 +100,11 @@ export default function Clients() {
   }, []);
 
   useEffect(() => {
-    fetchClients(1, searchQuery, statusFilter);
-  }, [searchQuery, statusFilter, fetchClients]);
+    fetchClients(1, searchQuery, statusFilter, advancedFilters);
+  }, [searchQuery, statusFilter, advancedFilters, fetchClients]);
 
   const handlePageChange = (page) => {
-    fetchClients(page, searchQuery, statusFilter);
+    fetchClients(page, searchQuery, statusFilter, advancedFilters);
   };
 
   const openAddModal = () => {
@@ -148,7 +158,7 @@ export default function Clients() {
       }
       setIsModalOpen(false);
       setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' }); // Clear form including password
-      fetchClients(pagination.page);
+      fetchClients(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to save client');
     } finally {
@@ -164,7 +174,7 @@ export default function Clients() {
       setSuccess('Client deleted successfully');
       setIsDeleteDialogOpen(false);
       setDeletingClient(null);
-      fetchClients(pagination.page);
+      fetchClients(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to delete client');
     }
@@ -174,7 +184,7 @@ export default function Clients() {
     try {
       await updateClientStatus(clientId, newStatus);
       setSuccess('Status updated successfully');
-      fetchClients(pagination.page);
+      fetchClients(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to update status');
     }
@@ -306,88 +316,191 @@ export default function Clients() {
         borderRadius: 'var(--border-radius-lg, 8px)',
         border: '1px solid var(--color-border, #e5e7eb)',
         marginBottom: 'var(--spacing-4, 16px)',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-        display: 'flex',
-        gap: 'var(--spacing-3, 12px)',
-        alignItems: 'center',
-        flexWrap: 'wrap'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
       }}>
-        <div style={{ flex: '1', minWidth: '250px' }}>
-          <div style={{ position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Search by name, email, or phone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px 10px 40px',
-                fontSize: 'var(--font-size-sm, 14px)',
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: 'var(--border-radius-md, 6px)',
-                outline: 'none',
-                transition: 'all 0.2s ease'
-              }}
-            />
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{
-                position: 'absolute',
-                left: '12px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--color-text-muted)'
-              }}
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.35-4.35" />
-            </svg>
+        <div style={{
+          display: 'flex',
+          gap: 'var(--spacing-3, 12px)',
+          alignItems: 'center',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ flex: '1', minWidth: '250px' }}>
+            <div style={{ position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="Search by name, email, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px 10px 40px',
+                  fontSize: 'var(--font-size-sm, 14px)',
+                  border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: 'var(--border-radius-md, 6px)',
+                  outline: 'none',
+                  transition: 'all 0.2s ease'
+                }}
+              />
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--color-text-muted)'
+                }}
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
+            </div>
           </div>
-        </div>
 
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{
-            padding: '10px 12px',
-            fontSize: 'var(--font-size-sm, 14px)',
-            border: '1px solid var(--color-border, #e5e7eb)',
-            borderRadius: 'var(--border-radius-md, 6px)',
-            backgroundColor: 'white',
-            cursor: 'pointer',
-            outline: 'none',
-            minWidth: '140px'
-          }}
-        >
-          <option value="">All Statuses</option>
-          {CLIENT_STATUSES.map(status => (
-            <option key={status} value={status}>{status}</option>
-          ))}
-        </select>
-
-        {(searchQuery || statusFilter) && (
-          <button
-            onClick={() => { setSearchQuery(''); setStatusFilter(''); }}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
             style={{
-              padding: '10px 16px',
+              padding: '10px 12px',
               fontSize: 'var(--font-size-sm, 14px)',
               border: '1px solid var(--color-border, #e5e7eb)',
               borderRadius: 'var(--border-radius-md, 6px)',
               backgroundColor: 'white',
               cursor: 'pointer',
-              fontWeight: '500',
-              color: 'var(--color-text-secondary)'
+              outline: 'none',
+              minWidth: '140px'
             }}
           >
-            Clear
+            <option value="">All Statuses</option>
+            {CLIENT_STATUSES.map(status => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
+
+          <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            style={{
+              padding: '10px 16px',
+              fontSize: 'var(--font-size-sm, 14px)',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: showAdvancedFilters ? '#f0f0ff' : 'white',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontWeight: '500',
+              color: showAdvancedFilters ? '#667eea' : 'var(--color-text-secondary)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            Filters
           </button>
+
+          {(searchQuery || statusFilter || advancedFilters.company) && (
+            <button
+              onClick={() => { setSearchQuery(''); setStatusFilter(''); setAdvancedFilters({ company: '' }); }}
+              style={{
+                padding: '10px 16px',
+                fontSize: 'var(--font-size-sm, 14px)',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                fontWeight: '500',
+                color: 'var(--color-text-secondary)'
+              }}
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        {/* Advanced Filters Panel */}
+        {showAdvancedFilters && (
+          <div style={{
+            display: 'flex',
+            gap: 'var(--spacing-3, 12px)',
+            marginTop: 'var(--spacing-3, 12px)',
+            paddingTop: 'var(--spacing-3, 12px)',
+            borderTop: '1px solid var(--color-border, #e5e7eb)',
+            alignItems: 'flex-end',
+            flexWrap: 'wrap'
+          }}>
+            <div style={{ flex: '1', minWidth: '200px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Company</label>
+              <input
+                type="text"
+                placeholder="Filter by company name"
+                value={advancedFilters.company}
+                onChange={(e) => setAdvancedFilters(prev => ({ ...prev, company: e.target.value }))}
+                style={{
+                  width: '100%', padding: '8px 12px', fontSize: '13px',
+                  border: '1px solid var(--color-border, #e5e7eb)',
+                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
+                }}
+              />
+            </div>
+            <button
+              onClick={() => setAdvancedFilters({ company: '' })}
+              style={{
+                padding: '8px 14px', fontSize: '13px',
+                border: '1px solid #fecaca', borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: '#fef2f2', color: '#dc2626',
+                cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap'
+              }}
+            >
+              Clear Filters
+            </button>
+          </div>
+        )}
+
+        {/* Active Filters */}
+        {(searchQuery || statusFilter || advancedFilters.company) && (
+          <div style={{
+            display: 'flex', gap: '8px', marginTop: 'var(--spacing-3, 12px)', flexWrap: 'wrap'
+          }}>
+            {searchQuery && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
+                color: '#92400e', backgroundColor: '#fef3c7',
+                border: '1px solid #fde68a', borderRadius: '9999px'
+              }}>
+                Search: &quot;{searchQuery}&quot;
+              </span>
+            )}
+            {statusFilter && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
+                color: '#92400e', backgroundColor: '#fef3c7',
+                border: '1px solid #fde68a', borderRadius: '9999px'
+              }}>
+                Status: {statusFilter}
+              </span>
+            )}
+            {advancedFilters.company && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
+                color: '#92400e', backgroundColor: '#fef3c7',
+                border: '1px solid #fde68a', borderRadius: '9999px'
+              }}>
+                Company: {advancedFilters.company}
+              </span>
+            )}
+          </div>
         )}
       </div>
 
@@ -539,6 +652,24 @@ export default function Clients() {
                 >
                   <DiceIcon /> Generate
                 </button>
+                {formData.password && (
+                  <button
+                    type="button"
+                    onClick={() => copyToClipboard(formData.password)}
+                    style={{
+                      padding: '8px 14px', borderRadius: '6px',
+                      border: `1px solid ${copiedPassword ? '#a7f3d0' : 'var(--color-border)'}`,
+                      background: copiedPassword ? '#d1fae5' : '#f9fafb',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                      fontSize: '12px', fontWeight: '600',
+                      color: copiedPassword ? '#065f46' : '#6b7280', whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease'
+                    }}
+                    title="Copy password"
+                  >
+                    {copiedPassword ? '✓ Copied' : '📋 Copy'}
+                  </button>
+                )}
               </div>
               <p className="form-hint">Leave blank to auto-generate a secure password on the server</p>
             </div>

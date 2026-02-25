@@ -112,7 +112,8 @@ const createProject = async (req, res) => {
       endDate,
       techStack,
       assignedClients,
-      assignedStaff
+      assignedStaff,
+      referenceLink
     } = req.body;
 
     if (!title) {
@@ -143,7 +144,8 @@ const createProject = async (req, res) => {
       endDate: endDate || null,
       techStack: techStack || [],
       assignedClients: assignedClients || [],
-      assignedStaff: assignedStaff || []
+      assignedStaff: assignedStaff || [],
+      referenceLink: referenceLink || ''
     });
 
     const populatedProject = await Project.findById(project._id)
@@ -177,7 +179,8 @@ const updateProject = async (req, res) => {
       endDate,
       techStack,
       assignedClients,
-      assignedStaff
+      assignedStaff,
+      referenceLink
     } = req.body;
 
     // Date validation
@@ -198,6 +201,7 @@ const updateProject = async (req, res) => {
     if (techStack !== undefined) updateData.techStack = techStack;
     if (assignedClients !== undefined) updateData.assignedClients = assignedClients;
     if (assignedStaff !== undefined) updateData.assignedStaff = assignedStaff;
+    if (referenceLink !== undefined) updateData.referenceLink = referenceLink;
 
     const project = await Project.findByIdAndUpdate(
       id,

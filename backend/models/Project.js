@@ -145,6 +145,13 @@ const projectSchema = new mongoose.Schema(
         },
         message: 'Invalid production URL format'
       }
+    },
+
+    // Reference link (Figma, Google Drive, external doc, etc.)
+    referenceLink: {
+      type: String,
+      trim: true,
+      default: ''
     }
   },
   {

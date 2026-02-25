@@ -219,6 +219,36 @@ export default function ProjectDetail() {
         </div>
       )}
 
+      {/* Reference Link */}
+      {project.referenceLink && (
+        <div className="card" style={{ marginBottom: '24px' }}>
+          <div style={{ padding: '20px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Reference Link</h3>
+            <a
+              href={project.referenceLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '8px',
+                padding: '8px 16px', borderRadius: '8px',
+                backgroundColor: '#eff6ff', color: '#1e40af',
+                border: '1px solid #bfdbfe', fontSize: '14px', fontWeight: '500',
+                textDecoration: 'none', transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
+              {project.referenceLink.length > 60 ? project.referenceLink.substring(0, 60) + '…' : project.referenceLink}
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Tech Stack */}
       {project.techStack && project.techStack.length > 0 && (
         <div className="card" style={{ marginBottom: '24px' }}>

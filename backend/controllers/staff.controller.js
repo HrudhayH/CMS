@@ -141,7 +141,7 @@ const getStaff = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
-    const { search, status } = req.query;
+    const { search, status, role, department } = req.query;
 
     // Build query conditions
     const query = {};
@@ -161,6 +161,16 @@ const getStaff = async (req, res) => {
       query.status = status;
     }
 
+    // Filter by role (partial match)
+    if (role && role.trim()) {
+      query.role = new RegExp(role.trim(), 'i');
+    }
+
+    // Filter by department (partial match)
+    if (department && department.trim()) {
+      query.department = new RegExp(department.trim(), 'i');
+    }
+
     const [staff, total] = await Promise.all([
       Staff.find(query)
         .sort({ createdAt: -1 })
@@ -170,11 +180,28 @@ const getStaff = async (req, res) => {
       Staff.countDocuments(query)
     ]);
 
+    // Fetch assigned project counts for these staff members
+    const staffIds = staff.map(s => s._id);
+    const projectCounts = await Project.aggregate([
+      { $match: { assignedStaff: { $in: staffIds } } },
+      { $unwind: '$assignedStaff' },
+      { $match: { assignedStaff: { $in: staffIds } } },
+      { $group: { _id: '$assignedStaff', count: { $sum: 1 } } }
+    ]);
+
+    const countMap = {};
+    projectCounts.forEach(pc => { countMap[pc._id.toString()] = pc.count; });
+
+    const staffWithCounts = staff.map(s => ({
+      ...s,
+      projectCount: countMap[s._id.toString()] || 0
+    }));
+
     const totalPages = Math.ceil(total / limit);
 
     res.json({
       success: true,
-      data: staff,
+      data: staffWithCounts,
       pagination: {
         page,
         limit,
