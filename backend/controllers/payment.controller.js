@@ -544,19 +544,15 @@ const updatePaymentPlan = async (req, res) => {
   }
 };
 
-// Edit phase (only if PENDING)
+// Edit phase (Admin can edit even if PAID)
 const updatePhase = async (req, res) => {
   try {
     const { id, phaseId } = req.params;
-    const { phaseName, amountType, amountValue, dueDate } = req.body;
+    const { phaseName, amountType, amountValue, dueDate, status, paymentMode, paidDate, notes } = req.body;
 
     const phase = await PaymentPhase.findOne({ _id: phaseId, paymentPlan: id });
     if (!phase) {
       return res.status(404).json({ success: false, message: 'Phase not found.' });
-    }
-
-    if (phase.status === 'PAID') {
-      return res.status(400).json({ success: false, message: 'Cannot edit a paid phase.' });
     }
 
     const plan = await PaymentPlan.findById(id);
@@ -564,9 +560,20 @@ const updatePhase = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Payment plan not found.' });
     }
 
-    // Update fields
+    // Snapshot previous values for history
+    const prevAmount = phase.calculatedAmount;
+    const prevMode = phase.paymentMode;
+    const prevStatus = phase.status;
+    const wasPaid = phase.status === 'PAID';
+
+    // Track if amount changed (needed for plan recalculation)
+    let amountChanged = false;
+    let statusChanged = false;
+
+    // Update basic fields
     if (phaseName !== undefined) phase.phaseName = phaseName;
     if (dueDate !== undefined) phase.dueDate = dueDate || null;
+    if (notes !== undefined) phase.notes = notes;
 
     // Update amount if changed
     if (amountType !== undefined || amountValue !== undefined) {
@@ -578,9 +585,111 @@ const updatePhase = async (req, res) => {
       phase.calculatedAmount = newAmountType === 'PERCENTAGE'
         ? (plan.totalAmount * newAmountValue) / 100
         : newAmountValue;
+
+      if (phase.calculatedAmount !== prevAmount) {
+        amountChanged = true;
+      }
     }
 
+    // Update status
+    if (status !== undefined && ['PENDING', 'PAID'].includes(status)) {
+      if (status !== phase.status) {
+        statusChanged = true;
+        phase.status = status;
+        // If marking as PAID, set paidDate if not provided
+        if (status === 'PAID' && !phase.paidDate && !paidDate) {
+          phase.paidDate = new Date();
+        }
+        // If reverting to PENDING, clear paid fields
+        if (status === 'PENDING') {
+          phase.paidDate = null;
+          phase.paymentMode = null;
+        }
+      }
+    }
+
+    // Update paymentMode (only if phase is/will be PAID)
+    if (paymentMode !== undefined && phase.status === 'PAID') {
+      phase.paymentMode = paymentMode;
+    }
+
+    // Update paidDate (only if phase is/will be PAID)
+    if (paidDate !== undefined && phase.status === 'PAID') {
+      phase.paidDate = paidDate ? new Date(paidDate) : new Date();
+    }
+
+    // Validate: calculatedAmount must not be negative
+    if (phase.calculatedAmount < 0) {
+      return res.status(400).json({ success: false, message: 'Phase amount cannot be negative.' });
+    }
+
+    // Recalculate plan totals if amount changed on a PAID phase, or status changed
+    if ((amountChanged && phase.status === 'PAID') || statusChanged) {
+      // Recalculate totalPaidAmount from all phases
+      const allPhases = await PaymentPhase.find({ paymentPlan: id });
+      // Apply the current unsaved phase changes
+      let newTotalPaid = 0;
+      for (const p of allPhases) {
+        if (p._id.toString() === phaseId) {
+          // Use the updated values
+          if (phase.status === 'PAID') newTotalPaid += phase.calculatedAmount;
+        } else {
+          if (p.status === 'PAID') newTotalPaid += p.calculatedAmount;
+        }
+      }
+
+      // Validate: no overpayment beyond plan total
+      if (newTotalPaid > plan.totalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Total paid (${newTotalPaid}) would exceed plan total (${plan.totalAmount}). Adjust amounts or plan total first.`
+        });
+      }
+
+      plan.totalPaidAmount = newTotalPaid;
+
+      // Recalculate plan status
+      if (plan.totalPaidAmount >= plan.totalAmount && plan.totalAmount > 0) {
+        plan.status = 'PAID';
+      } else if (plan.totalPaidAmount > 0) {
+        plan.status = 'PARTIAL';
+      } else {
+        plan.status = 'PENDING';
+      }
+
+      await plan.save();
+    }
+
+    // Mark edit metadata
+    phase.updatedBy = req.user.id;
+    phase.lastEditedAt = new Date();
+
     await phase.save();
+
+    // Create EDIT history entry if meaningful change occurred
+    if (amountChanged || statusChanged || (paymentMode !== undefined && paymentMode !== prevMode)) {
+      const descParts = [];
+      if (amountChanged) descParts.push(`amount: ${prevAmount} → ${phase.calculatedAmount}`);
+      if (statusChanged) descParts.push(`status: ${prevStatus} → ${phase.status}`);
+      if (paymentMode !== undefined && paymentMode !== prevMode) descParts.push(`mode: ${prevMode || 'none'} → ${paymentMode}`);
+
+      await PaymentHistory.create({
+        client: plan.client,
+        project: plan.project,
+        paymentPlan: plan._id,
+        phaseName: phase.phaseName,
+        amount: phase.calculatedAmount,
+        paymentMode: phase.paymentMode || prevMode || 'UPI',
+        paidDate: phase.paidDate || new Date(),
+        createdBy: req.user.id,
+        type: 'EDIT',
+        description: `Phase edited by Admin: ${descParts.join(', ')}`,
+        previousAmount: amountChanged ? prevAmount : null,
+        newAmount: amountChanged ? phase.calculatedAmount : null,
+        previousMode: (paymentMode !== undefined && paymentMode !== prevMode) ? prevMode : null,
+        newMode: (paymentMode !== undefined && paymentMode !== prevMode) ? paymentMode : null
+      });
+    }
 
     res.json({ success: true, message: 'Phase updated.', data: phase });
   } catch (error) {

@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
 import {
@@ -76,6 +77,7 @@ const UsersIcon = () => (
 );
 
 export default function Projects() {
+  const router = useRouter();
   const [projects, setProjects] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -85,6 +87,14 @@ export default function Projects() {
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    techStack: '',
+    startDateFrom: '',
+    startDateTo: '',
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  });
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -138,7 +148,8 @@ export default function Projects() {
         backgroundColor: 'var(--color-bg-secondary, #f9fafb)',
         borderRadius: 'var(--border-radius-md, 6px)',
         fontSize: 'var(--font-size-xs, 12px)',
-        color: 'var(--color-text-secondary)'
+        color: 'var(--color-text-secondary)',
+        whiteSpace: 'nowrap'
       }}>
         <CalendarIcon />
         <span style={{ fontWeight: '500' }}>{start}</span>
@@ -148,55 +159,108 @@ export default function Projects() {
     );
   };
 
-  // Helper function to render tech stack badges with enhanced design
-  const renderTechStack = (techStack) => {
-    if (!techStack || techStack.length === 0) {
+  // Helper function to render client column with hover popover
+  const ClientCell = ({ clients: assignedClients }) => {
+    const [hoveredClient, setHoveredClient] = useState(null);
+    const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+    const cellRef = useRef(null);
+
+    if (!assignedClients || assignedClients.length === 0) {
       return <span style={{ color: 'var(--color-text-muted)' }}>—</span>;
     }
 
-    const displayedTech = techStack.slice(0, 3);
-    const remaining = techStack.length - 3;
+    const primary = assignedClients[0];
+    const remaining = assignedClients.length - 1;
+
+    const handleMouseEnter = (client, e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      setPopoverPos({ top: rect.bottom + 6, left: rect.left });
+      setHoveredClient(client);
+    };
+
+    const getStatusDot = (status) => {
+      const color = status === 'Active' ? '#10b981' : '#f59e0b';
+      return (
+        <span style={{
+          display: 'inline-block', width: '8px', height: '8px',
+          borderRadius: '50%', backgroundColor: color, marginRight: '6px'
+        }} />
+      );
+    };
 
     return (
-      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-        {displayedTech.map((tech, index) => (
+      <div ref={cellRef} style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           <span
-            key={index}
+            onMouseEnter={(e) => handleMouseEnter(primary, e)}
+            onMouseLeave={() => setHoveredClient(null)}
             style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '4px 10px',
-              fontSize: 'var(--font-size-xs, 12px)',
-              fontWeight: '600',
+              fontWeight: '500', fontSize: '13px', cursor: 'pointer',
               color: 'var(--color-primary-700, #1e40af)',
-              backgroundColor: 'var(--color-primary-50, #eff6ff)',
-              border: '1px solid var(--color-primary-200, #bfdbfe)',
-              borderRadius: 'var(--border-radius-full, 9999px)',
-              whiteSpace: 'nowrap',
-              letterSpacing: '0.01em'
+              borderBottom: '1px dashed var(--color-primary-200, #bfdbfe)'
             }}
           >
-            {tech}
+            {primary.name}
           </span>
-        ))}
-        {remaining > 0 && (
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minWidth: '28px',
-              height: '28px',
-              padding: '0 8px',
-              fontSize: 'var(--font-size-xs, 12px)',
+          {remaining > 0 && (
+            <span style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              minWidth: '22px', height: '22px', padding: '0 6px',
+              fontSize: '11px', fontWeight: '700',
               color: 'var(--color-text-muted)',
               backgroundColor: 'var(--color-bg-secondary, #f3f4f6)',
-              borderRadius: 'var(--border-radius-full, 9999px)',
-              fontWeight: '600'
+              borderRadius: '9999px'
+            }}>
+              +{remaining}
+            </span>
+          )}
+        </div>
+
+        {/* Client hover popover */}
+        {hoveredClient && (
+          <div
+            onMouseEnter={() => {}}
+            onMouseLeave={() => setHoveredClient(null)}
+            style={{
+              position: 'fixed',
+              top: popoverPos.top,
+              left: popoverPos.left,
+              zIndex: 9999,
+              minWidth: '240px',
+              backgroundColor: 'white',
+              border: '1px solid var(--color-border, #e5e7eb)',
+              borderRadius: '10px',
+              boxShadow: '0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05)',
+              padding: '14px',
+              animation: 'popoverFadeIn 0.15s ease-out'
             }}
           >
-            +{remaining}
-          </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '50%',
+                background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '14px', fontWeight: '700', flexShrink: 0
+              }}>
+                {hoveredClient.name?.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '14px' }}>{hoveredClient.name}</div>
+                {hoveredClient.clientCode && (
+                  <span style={{ fontSize: '11px', color: '#7c3aed', fontWeight: '600' }}>{hoveredClient.clientCode}</span>
+                )}
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '13px', color: '#6b7280' }}>
+              {hoveredClient.email && <div>✉ {hoveredClient.email}</div>}
+              {hoveredClient.phone && <div>☎ {hoveredClient.phone}</div>}
+              {hoveredClient.status && (
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  {getStatusDot(hoveredClient.status)} {hoveredClient.status}
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     );
@@ -283,10 +347,10 @@ export default function Projects() {
     return colors[status] || colors['New'];
   };
 
-  const fetchProjects = useCallback(async (page = 1, search = '', status = '') => {
+  const fetchProjects = useCallback(async (page = 1, search = '', status = '', filters = {}) => {
     try {
       setLoading(true);
-      const response = await getProjects(page, ITEMS_PER_PAGE, search, status);
+      const response = await getProjects(page, ITEMS_PER_PAGE, search, status, filters);
       setProjects(response.data);
       setPagination(response.pagination);
       setError('');
@@ -311,12 +375,12 @@ export default function Projects() {
   }, []);
 
   useEffect(() => {
-    fetchProjects(1, searchQuery, statusFilter);
+    fetchProjects(1, searchQuery, statusFilter, advancedFilters);
     fetchOptions();
-  }, [searchQuery, statusFilter, fetchProjects, fetchOptions]);
+  }, [searchQuery, statusFilter, advancedFilters, fetchProjects, fetchOptions]);
 
   const handlePageChange = (page) => {
-    fetchProjects(page, searchQuery, statusFilter);
+    fetchProjects(page, searchQuery, statusFilter, advancedFilters);
   };
 
   const openAddModal = () => {
@@ -425,43 +489,107 @@ export default function Projects() {
     }
   };
 
-  const columns = [
-    {
-      key: 'title',
-      title: 'Project Title',
-      render: (value, row) => (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <span style={{
-            fontWeight: '600',
-            fontSize: 'var(--font-size-sm, 14px)',
-            color: 'var(--color-text-primary)'
-          }}>
-            {value}
+  // Title cell with hover description popover
+  const TitleCell = ({ project }) => {
+    const [showDesc, setShowDesc] = useState(false);
+    const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
+    const titleRef = useRef(null);
+
+    const handleMouseEnter = () => {
+      if (!project.description) return;
+      const rect = titleRef.current?.getBoundingClientRect();
+      if (rect) {
+        setPopoverPos({ top: rect.bottom + 6, left: rect.left });
+      }
+      setShowDesc(true);
+    };
+
+    return (
+      <div style={{ position: 'relative' }}>
+        <div
+          ref={titleRef}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={() => setShowDesc(false)}
+          style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}
+        >
+          <span
+            onClick={() => router.push(`/admin/projects/${project._id}`)}
+            style={{
+              fontWeight: '600',
+              fontSize: 'var(--font-size-sm, 14px)',
+              color: 'var(--color-primary-700, #1e40af)',
+              cursor: 'pointer',
+              textDecoration: 'none',
+              borderBottom: '1px solid transparent',
+              transition: 'border-color 0.2s'
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.borderBottomColor = 'var(--color-primary-400, #818cf8)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderBottomColor = 'transparent'}
+          >
+            {project.title}
           </span>
-          {row.description && (
+          {project.projectCode && (
             <span style={{
-              fontSize: 'var(--font-size-xs, 12px)',
-              color: 'var(--color-text-muted)',
-              maxWidth: '300px',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
+              display: 'inline-block',
+              fontSize: '11px',
+              fontWeight: '600',
+              color: '#7c3aed',
+              backgroundColor: '#f5f3ff',
+              padding: '1px 8px',
+              borderRadius: '9999px',
+              border: '1px solid #ddd6fe',
+              width: 'fit-content'
             }}>
-              {row.description}
+              {project.projectCode}
             </span>
           )}
         </div>
-      )
+
+        {/* Description hover popover */}
+        {showDesc && project.description && (
+          <div style={{
+            position: 'fixed',
+            top: popoverPos.top,
+            left: popoverPos.left,
+            zIndex: 9999,
+            maxWidth: '340px',
+            backgroundColor: 'white',
+            border: '1px solid var(--color-border, #e5e7eb)',
+            borderRadius: '10px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.05)',
+            padding: '12px 14px',
+            animation: 'popoverFadeIn 0.15s ease-out'
+          }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Description</div>
+            <p style={{
+              margin: 0, fontSize: '13px', lineHeight: '1.6',
+              color: 'var(--color-text-secondary)',
+              display: '-webkit-box', WebkitLineClamp: 5,
+              WebkitBoxOrient: 'vertical', overflow: 'hidden'
+            }}>
+              {project.description}
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const columns = [
+    {
+      key: 'title',
+      title: 'Project',
+      render: (value, row) => <TitleCell project={row} />
+    },
+    {
+      key: 'assignedClients',
+      title: 'Client',
+      render: (value) => <ClientCell clients={value} />
     },
     {
       key: 'timeline',
       title: 'Timeline',
       render: (_, row) => renderTimeline(row.startDate, row.endDate)
-    },
-    {
-      key: 'techStack',
-      title: 'Tech Stack',
-      render: (value) => renderTechStack(value)
     },
     {
       key: 'assignedStaff',
@@ -546,6 +674,14 @@ export default function Projects() {
 
   return (
     <div>
+      {/* Popover animation */}
+      <style jsx global>{`
+        @keyframes popoverFadeIn {
+          from { opacity: 0; transform: translateY(-4px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+
       <div className="page-header" style={{
         marginBottom: 'var(--spacing-6, 24px)',
         paddingBottom: 'var(--spacing-6, 24px)',
@@ -687,25 +823,26 @@ export default function Projects() {
           </select>
 
           <button
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             style={{
               padding: '10px 16px',
               fontSize: 'var(--font-size-sm, 14px)',
               border: '1px solid var(--color-border, #e5e7eb)',
               borderRadius: 'var(--border-radius-md, 6px)',
-              backgroundColor: 'white',
+              backgroundColor: showAdvancedFilters ? '#f0f0ff' : 'white',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
               fontWeight: '500',
-              color: 'var(--color-text-secondary)',
+              color: showAdvancedFilters ? '#667eea' : 'var(--color-text-secondary)',
               transition: 'all 0.2s ease'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary, #f9fafb)';
+              e.currentTarget.style.backgroundColor = showAdvancedFilters ? '#e8e8ff' : 'var(--color-bg-secondary, #f9fafb)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'white';
+              e.currentTarget.style.backgroundColor = showAdvancedFilters ? '#f0f0ff' : 'white';
             }}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -723,6 +860,130 @@ export default function Projects() {
           </button>
         </div>
       </div>
+
+      {/* Advanced Filters Panel */}
+      {showAdvancedFilters && (
+        <div style={{
+          backgroundColor: 'white',
+          padding: 'var(--spacing-4, 16px)',
+          borderRadius: 'var(--border-radius-lg, 8px)',
+          border: '1px solid var(--color-border, #e5e7eb)',
+          marginBottom: 'var(--spacing-4, 16px)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+          display: 'flex',
+          gap: 'var(--spacing-3, 12px)',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ flex: '1', minWidth: '180px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Tech Stack</label>
+            <input
+              type="text"
+              placeholder="e.g. React, Node.js"
+              value={advancedFilters.techStack}
+              onChange={(e) => setAdvancedFilters(prev => ({ ...prev, techStack: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Start Date From</label>
+            <input
+              type="date"
+              value={advancedFilters.startDateFrom}
+              onChange={(e) => setAdvancedFilters(prev => ({ ...prev, startDateFrom: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ minWidth: '150px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Start Date To</label>
+            <input
+              type="date"
+              value={advancedFilters.startDateTo}
+              onChange={(e) => setAdvancedFilters(prev => ({ ...prev, startDateTo: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                outline: 'none'
+              }}
+            />
+          </div>
+          <div style={{ minWidth: '140px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Sort By</label>
+            <select
+              value={advancedFilters.sortBy}
+              onChange={(e) => setAdvancedFilters(prev => ({ ...prev, sortBy: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="createdAt">Created Date</option>
+              <option value="title">Title</option>
+              <option value="startDate">Start Date</option>
+              <option value="status">Status</option>
+            </select>
+          </div>
+          <div style={{ minWidth: '110px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Order</label>
+            <select
+              value={advancedFilters.sortOrder}
+              onChange={(e) => setAdvancedFilters(prev => ({ ...prev, sortOrder: e.target.value }))}
+              style={{
+                width: '100%',
+                padding: '8px 12px',
+                fontSize: '13px',
+                border: '1px solid var(--color-border, #e5e7eb)',
+                borderRadius: 'var(--border-radius-md, 6px)',
+                backgroundColor: 'white',
+                cursor: 'pointer',
+                outline: 'none'
+              }}
+            >
+              <option value="desc">Newest First</option>
+              <option value="asc">Oldest First</option>
+            </select>
+          </div>
+          <button
+            onClick={() => setAdvancedFilters({ techStack: '', startDateFrom: '', startDateTo: '', sortBy: 'createdAt', sortOrder: 'desc' })}
+            style={{
+              padding: '8px 14px',
+              fontSize: '13px',
+              border: '1px solid #fecaca',
+              borderRadius: 'var(--border-radius-md, 6px)',
+              backgroundColor: '#fef2f2',
+              color: '#dc2626',
+              cursor: 'pointer',
+              fontWeight: '500',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            Clear Filters
+          </button>
+        </div>
+      )}
 
       <div style={{
         backgroundColor: 'white',

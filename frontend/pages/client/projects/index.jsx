@@ -36,15 +36,6 @@ function ClientProjects() {
         fetchProjects();
     }, []);
 
-    const formatDate = (dateString) => {
-        if (!dateString) return '—';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
-
     return (
         <div style={{ minHeight: '100%' }}>
             <h1 style={{ fontSize: '28px', fontWeight: '700', marginBottom: '8px', color: '#0f172a' }}>
@@ -126,18 +117,6 @@ function ClientProjects() {
                                     >
                                         {project.status}
                                     </span>
-                                </div>
-
-                                {/* Dates & Info */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    <div style={{ fontSize: '14px', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>Start Date:</span>
-                                        <span style={{ fontWeight: '600', color: '#334155' }}>{formatDate(project.startDate)}</span>
-                                    </div>
-                                    <div style={{ fontSize: '14px', color: '#64748b', display: 'flex', justifyContent: 'space-between' }}>
-                                        <span>Target End:</span>
-                                        <span style={{ fontWeight: '600', color: '#334155' }}>{formatDate(project.endDate)}</span>
-                                    </div>
                                 </div>
 
                                 {/* Assigned Staff */}

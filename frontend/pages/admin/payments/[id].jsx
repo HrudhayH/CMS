@@ -74,7 +74,8 @@ export default function PaymentDetail() {
 
   // Edit phase state
   const [editPhaseData, setEditPhaseData] = useState({
-    phaseName: '', amountType: '', amountValue: '', dueDate: ''
+    phaseName: '', amountType: '', amountValue: '', dueDate: '',
+    status: '', paymentMode: '', paidDate: '', notes: ''
   });
 
   const fetchPlan = useCallback(async () => {
@@ -228,7 +229,11 @@ export default function PaymentDetail() {
       phaseName: phase.phaseName,
       amountType: phase.amountType,
       amountValue: phase.amountValue,
-      dueDate: phase.dueDate ? phase.dueDate.split('T')[0] : ''
+      dueDate: phase.dueDate ? phase.dueDate.split('T')[0] : '',
+      status: phase.status,
+      paymentMode: phase.paymentMode || '',
+      paidDate: phase.paidDate ? phase.paidDate.split('T')[0] : '',
+      notes: phase.notes || ''
     });
     setIsEditPhaseModalOpen(true);
   };
@@ -238,12 +243,18 @@ export default function PaymentDetail() {
     setError('');
 
     try {
-      await updatePaymentPhase(id, selectedPhase._id, {
+      const payload = {
         phaseName: editPhaseData.phaseName,
         amountType: editPhaseData.amountType,
         amountValue: parseFloat(editPhaseData.amountValue),
-        dueDate: editPhaseData.dueDate || null
-      });
+        dueDate: editPhaseData.dueDate || null,
+        status: editPhaseData.status,
+        paymentMode: editPhaseData.paymentMode || null,
+        paidDate: editPhaseData.paidDate || null,
+        notes: editPhaseData.notes || ''
+      };
+
+      await updatePaymentPhase(id, selectedPhase._id, payload);
       setSuccess('Phase updated successfully');
       setIsEditPhaseModalOpen(false);
       setSelectedPhase(null);
@@ -452,13 +463,13 @@ export default function PaymentDetail() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                       <strong>{phase.phaseName}</strong>
                       {getStatusBadge(phase.status)}
-                      {phase.status === 'PAID' && (
-                        <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                          (Locked)
+                      {phase.lastEditedAt && (
+                        <span style={{ fontSize: '11px', color: '#6b7280', fontStyle: 'italic' }}>
+                          (Edited)
                         </span>
                       )}
                     </div>
-                    <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', gap: '24px', color: 'var(--text-secondary)', fontSize: '14px', flexWrap: 'wrap' }}>
                       <span>{formatCurrency(phase.calculatedAmount)}</span>
                       {phase.amountType === 'PERCENTAGE' && (
                         <span>({phase.amountValue}% of total)</span>
@@ -469,18 +480,22 @@ export default function PaymentDetail() {
                       {phase.paidDate && (
                         <span>Paid: {formatDate(phase.paidDate)} via {phase.paymentMode}</span>
                       )}
+                      {phase.notes && (
+                        <span style={{ fontStyle: 'italic' }}>Note: {phase.notes}</span>
+                      )}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '8px' }}>
+                    {/* Edit button always visible */}
+                    <button
+                      className="btn btn-secondary btn-sm btn-icon"
+                      onClick={() => openEditPhaseModal(phase)}
+                      title="Edit Phase"
+                    >
+                      <EditIcon />
+                    </button>
                     {phase.status !== 'PAID' && (
                       <>
-                        <button
-                          className="btn btn-secondary btn-sm btn-icon"
-                          onClick={() => openEditPhaseModal(phase)}
-                          title="Edit Phase"
-                        >
-                          <EditIcon />
-                        </button>
                         <button
                           className="btn btn-danger btn-sm btn-icon"
                           onClick={() => handleDeletePhase(phase)}
@@ -704,7 +719,7 @@ export default function PaymentDetail() {
       <Modal
         isOpen={isEditPhaseModalOpen}
         onClose={() => { setIsEditPhaseModalOpen(false); setSelectedPhase(null); }}
-        title="Edit Phase"
+        title={`Edit Phase${selectedPhase?.status === 'PAID' ? ' (Paid)' : ''}`}
       >
         <div style={{ marginBottom: '16px' }}>
           <label className="form-label">Phase Name</label>
@@ -742,15 +757,77 @@ export default function PaymentDetail() {
           </div>
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <label className="form-label">Status</label>
+            <select
+              className="form-input"
+              value={editPhaseData.status}
+              onChange={(e) => setEditPhaseData(prev => ({ ...prev, status: e.target.value }))}
+            >
+              <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+            </select>
+          </div>
+          <div>
+            <label className="form-label">Payment Mode</label>
+            <select
+              className="form-input"
+              value={editPhaseData.paymentMode}
+              onChange={(e) => setEditPhaseData(prev => ({ ...prev, paymentMode: e.target.value }))}
+              disabled={editPhaseData.status !== 'PAID'}
+            >
+              <option value="">Select Mode</option>
+              {PAYMENT_MODES.map(mode => (
+                <option key={mode} value={mode}>{mode}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div>
+            <label className="form-label">Due Date (optional)</label>
+            <input
+              type="date"
+              className="form-input"
+              value={editPhaseData.dueDate}
+              onChange={(e) => setEditPhaseData(prev => ({ ...prev, dueDate: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="form-label">Paid Date</label>
+            <input
+              type="date"
+              className="form-input"
+              value={editPhaseData.paidDate}
+              onChange={(e) => setEditPhaseData(prev => ({ ...prev, paidDate: e.target.value }))}
+              disabled={editPhaseData.status !== 'PAID'}
+            />
+          </div>
+        </div>
+
         <div style={{ marginBottom: '16px' }}>
-          <label className="form-label">Due Date (optional)</label>
-          <input
-            type="date"
+          <label className="form-label">Notes (optional)</label>
+          <textarea
             className="form-input"
-            value={editPhaseData.dueDate}
-            onChange={(e) => setEditPhaseData(prev => ({ ...prev, dueDate: e.target.value }))}
+            rows={3}
+            value={editPhaseData.notes}
+            onChange={(e) => setEditPhaseData(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Add a note about this edit..."
+            style={{ resize: 'vertical' }}
           />
         </div>
+
+        {selectedPhase?.status === 'PAID' && (
+          <div style={{
+            padding: '10px 14px', borderRadius: '8px', fontSize: '13px',
+            backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde68a',
+            marginBottom: '16px'
+          }}>
+            ⚠️ Editing a paid phase will recalculate plan totals and create an audit history entry.
+          </div>
+        )}
 
         <div className="modal-actions">
           <button type="button" className="btn btn-secondary" onClick={() => { setIsEditPhaseModalOpen(false); setSelectedPhase(null); }}>

@@ -42,6 +42,32 @@ const paymentHistorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Admin',
       required: true
+    },
+    type: {
+      type: String,
+      enum: ['PAYMENT', 'EDIT'],
+      default: 'PAYMENT'
+    },
+    description: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    previousAmount: {
+      type: Number,
+      default: null
+    },
+    newAmount: {
+      type: Number,
+      default: null
+    },
+    previousMode: {
+      type: String,
+      default: null
+    },
+    newMode: {
+      type: String,
+      default: null
     }
   },
   {

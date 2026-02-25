@@ -39,15 +39,6 @@ function ClientProjectDetails() {
         fetchProject();
     }, [id]);
 
-    const formatDate = (dateString) => {
-        if (!dateString) return 'Not set';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            month: 'long',
-            day: 'numeric',
-            year: 'numeric'
-        });
-    };
-
     const formatUpdateDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);

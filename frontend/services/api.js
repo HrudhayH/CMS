@@ -187,10 +187,15 @@ export async function getDashboardStats() {
 // ============================================
 // Project APIs
 // ============================================
-export async function getProjects(page = 1, limit = 10, search = '', status = '') {
+export async function getProjects(page = 1, limit = 10, search = '', status = '', filters = {}) {
   const params = new URLSearchParams({ page, limit });
   if (search) params.append('search', search);
   if (status) params.append('status', status);
+  if (filters.techStack) params.append('techStack', filters.techStack);
+  if (filters.startDateFrom) params.append('startDateFrom', filters.startDateFrom);
+  if (filters.startDateTo) params.append('startDateTo', filters.startDateTo);
+  if (filters.sortBy) params.append('sortBy', filters.sortBy);
+  if (filters.sortOrder) params.append('sortOrder', filters.sortOrder);
   return fetchWithAuth(`/admin/projects?${params.toString()}`);
 }
 
@@ -563,6 +568,37 @@ export async function deleteProjectComment(commentId) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.message || 'Failed to delete comment');
   return data;
+}
+
+// ============================================
+// Admin Management APIs (super_admin only)
+// ============================================
+export async function getAdmins() {
+  return fetchWithAuth('/admin/admins');
+}
+
+export async function getAdminById(id) {
+  return fetchWithAuth(`/admin/admins/${id}`);
+}
+
+export async function createAdminUser(adminData) {
+  return fetchWithAuth('/admin/admins', {
+    method: 'POST',
+    body: JSON.stringify(adminData),
+  });
+}
+
+export async function updateAdminUser(id, adminData) {
+  return fetchWithAuth(`/admin/admins/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(adminData),
+  });
+}
+
+export async function deleteAdminUser(id) {
+  return fetchWithAuth(`/admin/admins/${id}`, {
+    method: 'DELETE',
+  });
 }
 
 

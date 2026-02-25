@@ -21,7 +21,7 @@ const adminLogin = async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: admin._id, email: admin.email, role: admin.role },
+      { id: admin._id, email: admin.email, name: admin.name || admin.email, role: admin.role, permissions: admin.permissions || [] },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -29,7 +29,14 @@ const adminLogin = async (req, res) => {
     res.json({
       success: true,
       message: 'Login successful.',
-      token
+      token,
+      user: {
+        id: admin._id,
+        name: admin.name || admin.email,
+        email: admin.email,
+        role: admin.role,
+        permissions: admin.permissions || []
+      }
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
 import {
@@ -70,7 +71,23 @@ const XIcon = () => (
   </svg>
 );
 
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
+  </svg>
+);
+
+const DiceIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="3" ry="3" />
+    <circle cx="8" cy="8" r="1.5" fill="currentColor" /><circle cx="16" cy="8" r="1.5" fill="currentColor" />
+    <circle cx="8" cy="16" r="1.5" fill="currentColor" /><circle cx="16" cy="16" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+  </svg>
+);
+
 export default function Staff() {
+  const router = useRouter();
   const [staff, setStaff] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [loading, setLoading] = useState(true);
@@ -92,9 +109,12 @@ export default function Staff() {
     name: '',
     email: '',
     phone: '',
-    password: ''
+    password: '',
+    role: '',
+    department: ''
   });
   const [formLoading, setFormLoading] = useState(false);
+  const [generatedPassword, setGeneratedPassword] = useState('');
 
   // Get status color
   const getStatusColor = (status) => {
@@ -158,7 +178,8 @@ export default function Staff() {
 
   const openAddModal = () => {
     setEditingStaff(null);
-    setFormData({ name: '', email: '', phone: '', password: '' });
+    setFormData({ name: '', email: '', phone: '', password: '', role: '', department: '' });
+    setGeneratedPassword('');
     setIsModalOpen(true);
   };
 
@@ -168,8 +189,11 @@ export default function Staff() {
       name: member.name,
       email: member.email,
       phone: member.phone,
-      password: '' // Password is not shown during edit
+      password: '', // Password is not shown during edit
+      role: member.role || '',
+      department: member.department || ''
     });
+    setGeneratedPassword('');
     setIsModalOpen(true);
   };
 
@@ -188,25 +212,24 @@ export default function Staff() {
     setFormLoading(true);
     setError('');
 
-    // Validate password for new staff
-    if (!editingStaff && !formData.password) {
-      setError('Password is required for new staff members');
-      setFormLoading(false);
-      return;
-    }
-
     try {
       if (editingStaff) {
-        // Only send name, email, and phone for updates (no password)
-        const { name, email, phone } = formData;
-        await updateStaff(editingStaff._id, { name, email, phone });
+        // Only send name, email, phone, role, department for updates (no password)
+        const { name, email, phone, role, department } = formData;
+        await updateStaff(editingStaff._id, { name, email, phone, role, department });
         setSuccess('Staff member updated successfully');
+        setIsModalOpen(false);
       } else {
-        await createStaff(formData);
-        setSuccess('Staff member created successfully');
+        const result = await createStaff(formData);
+        if (result.data?.generatedPassword) {
+          setGeneratedPassword(result.data.generatedPassword);
+          setSuccess(`Staff member created! Generated password: ${result.data.generatedPassword}`);
+        } else {
+          setSuccess('Staff member created successfully');
+        }
+        setIsModalOpen(false);
       }
-      setIsModalOpen(false);
-      setFormData({ name: '', email: '', phone: '', password: '' }); // Clear form including password
+      setFormData({ name: '', email: '', phone: '', password: '', role: '', department: '' });
       fetchStaff(pagination.page);
     } catch (err) {
       setError(err.message || 'Failed to save staff member');
@@ -273,13 +296,30 @@ export default function Staff() {
               <div style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '4px',
+                gap: '8px',
                 fontSize: 'var(--font-size-xs, 12px)',
                 color: 'var(--color-text-muted)'
               }}>
-                <MailIcon />
-                <span>{row.email}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MailIcon />
+                  {row.email}
+                </span>
               </div>
+              {row.employeeCode && (
+                <span style={{
+                  display: 'inline-block',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                  color: '#1e40af',
+                  backgroundColor: '#eff6ff',
+                  padding: '1px 8px',
+                  borderRadius: '9999px',
+                  border: '1px solid #bfdbfe',
+                  width: 'fit-content'
+                }}>
+                  {row.employeeCode}
+                </span>
+              )}
             </div>
           </div>
         );
@@ -360,6 +400,14 @@ export default function Staff() {
       align: 'right',
       render: (_, row) => (
         <div className="table-actions" style={{ justifyContent: 'flex-end', gap: '6px' }}>
+          <button
+            className="btn btn-ghost btn-icon-sm"
+            onClick={() => router.push(`/admin/staff/${row._id}`)}
+            title="View Details"
+            style={{ transition: 'all 0.2s ease' }}
+          >
+            <EyeIcon />
+          </button>
           <button
             className="btn btn-ghost btn-icon-sm"
             onClick={() => openEditModal(row)}
@@ -693,27 +741,67 @@ export default function Staff() {
               value={formData.phone}
               onChange={handleFormChange}
               placeholder="Enter phone number"
-              pattern="[0-9]{10}"
-              title="Please enter a 10-digit phone number"
             />
-            <p className="form-hint">Format: 10-digit mobile number</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label className="form-label">Role</label>
+              <input
+                type="text"
+                name="role"
+                className="form-input"
+                value={formData.role}
+                onChange={handleFormChange}
+                placeholder="e.g. Developer"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Department</label>
+              <input
+                type="text"
+                name="department"
+                className="form-input"
+                value={formData.department}
+                onChange={handleFormChange}
+                placeholder="e.g. Engineering"
+              />
+            </div>
           </div>
 
           {/* Password field - only shown when creating new staff */}
           {!editingStaff && (
             <div className="form-group">
-              <label className="form-label form-label-required">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="form-input"
-                value={formData.password}
-                onChange={handleFormChange}
-                placeholder="Enter staff password"
-                required
-                minLength={6}
-              />
-              <p className="form-hint">Password must be at least 6 characters</p>
+              <label className="form-label">Password</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  name="password"
+                  className="form-input"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  placeholder="Leave blank to auto-generate"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&*!?';
+                    let pwd = '';
+                    for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+                    setFormData(prev => ({ ...prev, password: pwd }));
+                  }}
+                  style={{
+                    padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--color-border)',
+                    background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                    fontSize: '12px', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap'
+                  }}
+                  title="Generate random password"
+                >
+                  <DiceIcon /> Generate
+                </button>
+              </div>
+              <p className="form-hint">Leave blank to auto-generate a secure password on the server</p>
             </div>
           )}
         </form>

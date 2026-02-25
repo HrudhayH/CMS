@@ -1,12 +1,19 @@
 const Client = require('../models/Client');
 const Project = require('../models/Project');
+const Counter = require('../models/Counter');
+const PaymentPlan = require('../models/PaymentPlan');
+const PaymentPhase = require('../models/PaymentPhase');
+const PaymentHistory = require('../models/PaymentHistory');
+const Roadmap = require('../models/Roadmap');
+const ProjectComment = require('../models/ProjectComment');
+const generatePassword = require('../utils/generatePassword');
 
 const createClient = async (req, res) => {
   try {
     const { name, email, password, phone, company, gst, address } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Name and email are required.' });
     }
 
     // Basic phone validation (if provided)
@@ -19,25 +26,38 @@ const createClient = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Client with this email already exists.' });
     }
 
+    // Use provided password or generate one
+    const clientPassword = password || generatePassword();
+
+    // Generate clientCode
+    const seq = await Counter.getNextSequence('client');
+    const clientCode = `CLT-${String(seq).padStart(4, '0')}`;
+
     const client = await Client.create({
+      clientCode,
       name,
       email,
-      password,
+      password: clientPassword,
       phone: phone || '',
       company: company || '',
       gst: gst || '',
       address: address || ''
     });
 
-    // Return client without password
+    // Return client without password (include generated password once for admin to copy)
     const clientResponse = {
       _id: client._id,
+      clientCode: client.clientCode,
       name: client.name,
       email: client.email,
       phone: client.phone,
+      company: client.company,
+      gst: client.gst,
+      address: client.address,
       status: client.status,
       createdAt: client.createdAt,
-      updatedAt: client.updatedAt
+      updatedAt: client.updatedAt,
+      generatedPassword: !password ? clientPassword : undefined
     };
 
     res.status(201).json({ success: true, message: 'Client created.', data: clientResponse });
@@ -85,12 +105,33 @@ const deleteClient = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const client = await Client.findByIdAndDelete(id);
+    const client = await Client.findById(id);
     if (!client) {
       return res.status(404).json({ success: false, message: 'Client not found.' });
     }
 
-    res.json({ success: true, message: 'Client deleted.' });
+    // Cascade: remove client from assigned projects
+    await Project.updateMany(
+      { assignedClients: id },
+      { $pull: { assignedClients: id } }
+    );
+
+    // Cascade: delete related payment data
+    const paymentPlans = await PaymentPlan.find({ client: id });
+    const planIds = paymentPlans.map(p => p._id);
+
+    if (planIds.length > 0) {
+      await PaymentPhase.deleteMany({ paymentPlan: { $in: planIds } });
+      await PaymentHistory.deleteMany({ client: id });
+      await PaymentPlan.deleteMany({ client: id });
+    }
+
+    // Cascade: delete client's comments
+    await ProjectComment.deleteMany({ sender: id, senderModel: 'Client' });
+
+    await Client.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Client and related data deleted.' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
   }
@@ -132,13 +173,14 @@ const getClients = async (req, res) => {
     // Build query conditions
     const query = {};
 
-    // Search across name, email, phone
+    // Search across name, email, phone, clientCode
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
         { name: searchRegex },
         { email: searchRegex },
-        { phone: searchRegex }
+        { phone: searchRegex },
+        { clientCode: searchRegex }
       ];
     }
 

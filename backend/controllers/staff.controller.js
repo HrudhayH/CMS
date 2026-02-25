@@ -1,11 +1,16 @@
 const Staff = require('../models/Staff');
+const Project = require('../models/Project');
+const Counter = require('../models/Counter');
+const Roadmap = require('../models/Roadmap');
+const ProjectComment = require('../models/ProjectComment');
+const generatePassword = require('../utils/generatePassword');
 
 const createStaff = async (req, res) => {
   try {
-    const { name, email, phone, password } = req.body;
+    const { name, email, phone, password, role, department } = req.body;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    if (!name || !email) {
+      return res.status(400).json({ success: false, message: 'Name and email are required.' });
     }
 
     const existingStaff = await Staff.findOne({ email });
@@ -13,17 +18,36 @@ const createStaff = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Staff with this email already exists.' });
     }
 
-    const staff = await Staff.create({ name, email, phone, password });
+    // Use provided password or generate one
+    const staffPassword = password || generatePassword();
+
+    // Generate employeeCode
+    const seq = await Counter.getNextSequence('staff');
+    const employeeCode = `STF-${String(seq).padStart(4, '0')}`;
+
+    const staff = await Staff.create({
+      employeeCode,
+      name,
+      email,
+      phone,
+      password: staffPassword,
+      role: role || '',
+      department: department || ''
+    });
 
     // Return staff without password
     const staffResponse = {
       _id: staff._id,
+      employeeCode: staff.employeeCode,
       name: staff.name,
       email: staff.email,
       phone: staff.phone,
+      role: staff.role,
+      department: staff.department,
       status: staff.status,
       createdAt: staff.createdAt,
-      updatedAt: staff.updatedAt
+      updatedAt: staff.updatedAt,
+      generatedPassword: !password ? staffPassword : undefined
     };
 
     res.status(201).json({ success: true, message: 'Staff created.', data: staffResponse });
@@ -35,11 +59,18 @@ const createStaff = async (req, res) => {
 const updateStaff = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone } = req.body;
+    const { name, email, phone, role, department } = req.body;
+
+    const updateData = {};
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+    if (role !== undefined) updateData.role = role;
+    if (department !== undefined) updateData.department = department;
 
     const staff = await Staff.findByIdAndUpdate(
       id,
-      { name, email, phone },
+      updateData,
       { new: true, runValidators: true }
     );
 
@@ -57,12 +88,23 @@ const deleteStaff = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const staff = await Staff.findByIdAndDelete(id);
+    const staff = await Staff.findById(id);
     if (!staff) {
       return res.status(404).json({ success: false, message: 'Staff not found.' });
     }
 
-    res.json({ success: true, message: 'Staff deleted.' });
+    // Cascade: remove staff from assigned projects
+    await Project.updateMany(
+      { assignedStaff: id },
+      { $pull: { assignedStaff: id } }
+    );
+
+    // Cascade: delete staff's comments
+    await ProjectComment.deleteMany({ sender: id, senderModel: 'Staff' });
+
+    await Staff.findByIdAndDelete(id);
+
+    res.json({ success: true, message: 'Staff and related data deleted.' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server error.', error: error.message });
   }
@@ -104,12 +146,13 @@ const getStaff = async (req, res) => {
     // Build query conditions
     const query = {};
 
-    // Search across name, email
+    // Search across name, email, employeeCode
     if (search && search.trim()) {
       const searchRegex = new RegExp(search.trim(), 'i');
       query.$or = [
         { name: searchRegex },
-        { email: searchRegex }
+        { email: searchRegex },
+        { employeeCode: searchRegex }
       ];
     }
 
@@ -155,4 +198,31 @@ const getAllStaff = async (req, res) => {
   }
 };
 
-module.exports = { createStaff, updateStaff, deleteStaff, updateStaffStatus, getStaff, getAllStaff };
+// Get single staff member by ID with assigned projects
+const getStaffById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const staff = await Staff.findById(id).lean();
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff not found.' });
+    }
+
+    const projects = await Project.find({ assignedStaff: id })
+      .populate('assignedClients', 'name email')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: {
+        staff,
+        projects
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+module.exports = { createStaff, updateStaff, deleteStaff, updateStaffStatus, getStaff, getAllStaff, getStaffById };

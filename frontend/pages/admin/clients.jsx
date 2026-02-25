@@ -36,6 +36,15 @@ const TrashIcon = () => (
   </svg>
 );
 
+const DiceIcon = () => (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="2" y="2" width="20" height="20" rx="3" ry="3" />
+    <circle cx="8" cy="8" r="1.5" fill="currentColor" /><circle cx="16" cy="8" r="1.5" fill="currentColor" />
+    <circle cx="8" cy="16" r="1.5" fill="currentColor" /><circle cx="16" cy="16" r="1.5" fill="currentColor" />
+    <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+  </svg>
+);
+
 export default function Clients() {
   const router = useRouter();
   const [clients, setClients] = useState([]);
@@ -123,13 +132,6 @@ export default function Clients() {
     setFormLoading(true);
     setError('');
 
-    // Validate password for new clients
-    if (!editingClient && !formData.password) {
-      setError('Password is required for new clients');
-      setFormLoading(false);
-      return;
-    }
-
     try {
       if (editingClient) {
         // Only send name, email, and phone for updates (no password)
@@ -137,8 +139,12 @@ export default function Clients() {
         await updateClient(editingClient._id, { name, email, phone, company, gst, address });
         setSuccess('Client updated successfully');
       } else {
-        await createClient(formData);
-        setSuccess('Client created successfully');
+        const result = await createClient(formData);
+        if (result.data?.generatedPassword) {
+          setSuccess(`Client created! Generated password: ${result.data.generatedPassword}`);
+        } else {
+          setSuccess('Client created successfully');
+        }
       }
       setIsModalOpen(false);
       setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' }); // Clear form including password
@@ -178,8 +184,17 @@ export default function Clients() {
     {
       key: 'name',
       title: 'Name',
-      render: (value) => (
-        <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{value}</span>
+      render: (value, row) => (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+          <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{value}</span>
+          {row.clientCode && (
+            <span style={{
+              display: 'inline-block', fontSize: '11px', fontWeight: '600',
+              color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 8px',
+              borderRadius: '9999px', border: '1px solid #a7f3d0', width: 'fit-content'
+            }}>{row.clientCode}</span>
+          )}
+        </div>
       )
     },
     {
@@ -496,18 +511,36 @@ export default function Clients() {
           {/* Password field - only shown when creating new client */}
           {!editingClient && (
             <div className="form-group">
-              <label className="form-label form-label-required">Password</label>
-              <input
-                type="password"
-                name="password"
-                className="form-input"
-                value={formData.password}
-                onChange={handleFormChange}
-                placeholder="Enter client password"
-                required
-                minLength={6}
-              />
-              <p className="form-hint">Password must be at least 6 characters</p>
+              <label className="form-label">Password</label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  name="password"
+                  className="form-input"
+                  value={formData.password}
+                  onChange={handleFormChange}
+                  placeholder="Leave blank to auto-generate"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&*!?';
+                    let pwd = '';
+                    for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+                    setFormData(prev => ({ ...prev, password: pwd }));
+                  }}
+                  style={{
+                    padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--color-border)',
+                    background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
+                    fontSize: '12px', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap'
+                  }}
+                  title="Generate random password"
+                >
+                  <DiceIcon /> Generate
+                </button>
+              </div>
+              <p className="form-hint">Leave blank to auto-generate a secure password on the server</p>
             </div>
           )}
         </form>

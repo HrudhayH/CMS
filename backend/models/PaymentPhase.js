@@ -45,6 +45,20 @@ const paymentPhaseSchema = new mongoose.Schema(
       type: String,
       enum: ['UPI', 'BANK', 'CASH', 'CHEQUE'],
       default: null
+    },
+    notes: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    updatedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin',
+      default: null
+    },
+    lastEditedAt: {
+      type: Date,
+      default: null
     }
   },
   {

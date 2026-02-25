@@ -2,6 +2,12 @@ const mongoose = require('mongoose');
 
 const projectSchema = new mongoose.Schema(
   {
+    projectCode: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+
     title: {
       type: String,
       required: true,
@@ -151,5 +157,7 @@ projectSchema.index({ status: 1 });
 projectSchema.index({ createdAt: -1 });
 projectSchema.index({ startDate: 1 });
 projectSchema.index({ endDate: 1 });
+projectSchema.index({ projectCode: 1 });
+projectSchema.index({ title: 'text' });
 
 module.exports = mongoose.model('Project', projectSchema);

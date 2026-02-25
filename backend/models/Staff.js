@@ -3,6 +3,12 @@ const bcrypt = require('bcrypt');
 
 const staffSchema = new mongoose.Schema(
   {
+    employeeCode: {
+      type: String,
+      unique: true,
+      sparse: true
+    },
+
     name: {
       type: String,
       required: true,

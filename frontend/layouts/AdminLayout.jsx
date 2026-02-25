@@ -71,12 +71,18 @@ const PaymentsIcon = () => (
   </svg>
 );
 
+const AdminsIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+
 const navItems = [
-  { href: '/admin/dashboard', label: 'Dashboard', icon: DashboardIcon },
-  { href: '/admin/projects', label: 'Projects', icon: ProjectsIcon },
-  { href: '/admin/clients', label: 'Clients', icon: ClientsIcon },
-  { href: '/admin/staff', label: 'Staff', icon: StaffIcon },
-  { href: '/admin/payments', label: 'Payments', icon: PaymentsIcon },
+  { href: '/admin/dashboard', label: 'Dashboard', icon: DashboardIcon, permission: 'view_dashboard' },
+  { href: '/admin/projects', label: 'Projects', icon: ProjectsIcon, permission: 'manage_projects' },
+  { href: '/admin/clients', label: 'Clients', icon: ClientsIcon, permission: 'manage_clients' },
+  { href: '/admin/staff', label: 'Staff', icon: StaffIcon, permission: 'manage_staff' },
+  { href: '/admin/payments', label: 'Payments', icon: PaymentsIcon, permission: 'manage_payments' },
 ];
 
 export default function AdminLayout({ children }) {
@@ -154,7 +160,14 @@ export default function AdminLayout({ children }) {
 
         <nav className={styles.nav}>
           <ul className={styles.navList}>
-            {navItems.map((item) => {
+            {navItems
+              .filter((item) => {
+                // Super admins see everything
+                if (user?.role === 'super_admin') return true;
+                // Regular admins see only permitted items
+                return user?.permissions?.includes(item.permission);
+              })
+              .map((item) => {
               const Icon = item.icon;
               const isActive = router.pathname === item.href;
               
@@ -172,6 +185,20 @@ export default function AdminLayout({ children }) {
                 </li>
               );
             })}
+            {/* Show Manage Admins only for super_admin */}
+            {user?.role === 'super_admin' && (
+              <li className={styles.navItem}>
+                <Link 
+                  href="/admin/manage-admins" 
+                  className={`${styles.navLink} ${router.pathname === '/admin/manage-admins' ? styles.navLinkActive : ''}`}
+                >
+                  <span className={styles.navIcon}>
+                    <AdminsIcon />
+                  </span>
+                  <span className={styles.navText}>Manage Admins</span>
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
 
@@ -181,8 +208,8 @@ export default function AdminLayout({ children }) {
               {user?.email?.charAt(0).toUpperCase() || 'A'}
             </div>
             <div className={styles.userDetails}>
-              <div className={styles.userName}>{user?.email || 'Admin'}</div>
-              <div className={styles.userRole}>Administrator</div>
+              <div className={styles.userName}>{user?.name || user?.email || 'Admin'}</div>
+              <div className={styles.userRole}>{user?.role === 'super_admin' ? 'Super Admin' : 'Administrator'}</div>
             </div>
           </div>
           <button className={styles.logoutBtn} onClick={handleLogout}>
