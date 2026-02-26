@@ -1,15 +1,24 @@
-export default function StatusBadge({ status }) {
+import React from 'react';
+
+const StatusBadge = ({ status }) => {
   const getStatusClass = (status) => {
-    const statusLower = status?.toLowerCase().replace(/\s+/g, '-');
-    const statusMap = {
-      'active': 'badge-active',
-      'paused': 'badge-paused',
-      'completed': 'badge-completed',
-      'new': 'badge-new',
-      'in-progress': 'badge-in-progress',
-      'on-hold': 'badge-on-hold',
-    };
-    return statusMap[statusLower] || 'badge-info';
+    const s = status?.toLowerCase();
+    if (!s) return 'badge-neutral';
+
+    // Green -> Active
+    if (s.includes('active') || s === 'success' || s === 'open' || s === 'paid') return 'badge-success';
+
+    // Blue -> In Progress
+    if (s.includes('progress') || s === 'new' || s === 'sent') return 'badge-info';
+
+    // Yellow -> On Hold
+    if (s.includes('hold') || s === 'pending' || s === 'warning' || s === 'on hold') return 'badge-warning';
+
+    // Grey -> Completed
+    if (s.includes('completed') || s === 'closed' || s === 'delivered' || s === 'archived' || s === 'cancelled') return 'badge-completed';
+
+    // Default to neutral (grey)
+    return 'badge-neutral';
   };
 
   return (
@@ -17,4 +26,6 @@ export default function StatusBadge({ status }) {
       {status}
     </span>
   );
-}
+};
+
+export default StatusBadge;

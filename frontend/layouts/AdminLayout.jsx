@@ -77,12 +77,23 @@ const AdminsIcon = () => (
   </svg>
 );
 
+const MOMIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <polyline points="14 2 14 8 20 8" />
+    <line x1="16" y1="13" x2="8" y2="13" />
+    <line x1="16" y1="17" x2="8" y2="17" />
+    <polyline points="10 9 9 9 8 9" />
+  </svg>
+);
+
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: DashboardIcon, permission: 'view_dashboard' },
   { href: '/admin/projects', label: 'Projects', icon: ProjectsIcon, permission: 'manage_projects' },
   { href: '/admin/clients', label: 'Clients', icon: ClientsIcon, permission: 'manage_clients' },
   { href: '/admin/staff', label: 'Staff', icon: StaffIcon, permission: 'manage_staff' },
   { href: '/admin/payments', label: 'Payments', icon: PaymentsIcon, permission: 'manage_payments' },
+  { href: '/admin/mom', label: 'MOM', icon: MOMIcon, permission: 'view_dashboard' },
 ];
 
 export default function AdminLayout({ children }) {
@@ -129,7 +140,7 @@ export default function AdminLayout({ children }) {
   return (
     <div className={styles.adminLayout}>
       {/* Mobile overlay */}
-      <div 
+      <div
         className={`${styles.overlay} ${isMobileOpen ? styles.overlayVisible : ''}`}
         onClick={() => setIsMobileOpen(false)}
       />
@@ -149,8 +160,8 @@ export default function AdminLayout({ children }) {
             </div>
             <span className={styles.logoText}>CMS Admin</span>
           </Link>
-          <button 
-            className={styles.toggleBtn} 
+          <button
+            className={styles.toggleBtn}
             onClick={() => setIsCollapsed(!isCollapsed)}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
@@ -168,28 +179,28 @@ export default function AdminLayout({ children }) {
                 return user?.permissions?.includes(item.permission);
               })
               .map((item) => {
-              const Icon = item.icon;
-              const isActive = router.pathname === item.href;
-              
-              return (
-                <li key={item.href} className={styles.navItem}>
-                  <Link 
-                    href={item.href} 
-                    className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
-                  >
-                    <span className={styles.navIcon}>
-                      <Icon />
-                    </span>
-                    <span className={styles.navText}>{item.label}</span>
-                  </Link>
-                </li>
-              );
-            })}
+                const Icon = item.icon;
+                const isActive = router.pathname === item.href;
+
+                return (
+                  <li key={item.href} className={styles.navItem}>
+                    <Link
+                      href={item.href}
+                      className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
+                    >
+                      <span className={styles.navIcon}>
+                        <Icon />
+                      </span>
+                      <span className={styles.navText}>{item.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
             {/* Show Manage Admins only for super_admin */}
             {user?.role === 'super_admin' && (
               <li className={styles.navItem}>
-                <Link 
-                  href="/admin/manage-admins" 
+                <Link
+                  href="/admin/manage-admins"
                   className={`${styles.navLink} ${router.pathname === '/admin/manage-admins' ? styles.navLinkActive : ''}`}
                 >
                   <span className={styles.navIcon}>
@@ -223,8 +234,8 @@ export default function AdminLayout({ children }) {
       <main className={`${styles.main} ${isCollapsed ? styles.mainCollapsed : ''}`}>
         {/* Mobile header */}
         <div className={styles.mobileHeader}>
-          <button 
-            className={styles.burgerBtn} 
+          <button
+            className={styles.burgerBtn}
             onClick={() => setIsMobileOpen(true)}
             aria-label="Open menu"
           >

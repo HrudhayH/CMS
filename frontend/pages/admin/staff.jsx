@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
-import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
+import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert, Button, Card, PageHeader } from '../../components';
 import {
   getStaff,
   createStaff,
@@ -481,102 +481,31 @@ export default function Staff() {
   ];
 
   return (
-    <div>
-      <div className="page-header" style={{
-        marginBottom: 'var(--spacing-6, 24px)',
-        paddingBottom: 'var(--spacing-6, 24px)',
-        borderBottom: '1px solid var(--color-border, #e5e7eb)'
-      }}>
-        <div>
-          <h1 className="page-title" style={{
-            fontSize: 'var(--font-size-2xl, 28px)',
-            fontWeight: '700',
-            marginBottom: 'var(--spacing-2, 8px)',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #dc2626 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Staff
-          </h1>
-          <p className="page-subtitle" style={{
-            fontSize: 'var(--font-size-sm, 14px)',
-            color: 'var(--color-text-muted)'
-          }}>
-            Manage your staff members
-          </p>
-        </div>
-        <div className="page-actions">
-          <button className="btn btn-primary" onClick={openAddModal} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 24px',
-            fontSize: 'var(--font-size-sm, 14px)',
-            fontWeight: '600',
-            borderRadius: 'var(--border-radius-lg, 8px)',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 6px rgba(245, 158, 11, 0.15)',
-            background: 'linear-gradient(135deg, #f59e0b 0%, #dc2626 100%)',
-            border: 'none'
-          }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 12px rgba(245, 158, 11, 0.25)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(245, 158, 11, 0.15)';
-            }}>
-            <PlusIcon />
+    <div className="staff-page">
+      <PageHeader
+        title="Staff"
+        subtitle="Manage your staff members and their access"
+        actions={
+          <Button onClick={openAddModal} icon={PlusIcon}>
             Add Staff
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
-      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} style={{ marginBottom: 'var(--spacing-4)' }} />}
+      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} style={{ marginBottom: 'var(--spacing-4)' }} />}
 
-      {/* Search and Filter Bar */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: 'var(--spacing-4, 16px)',
-        borderRadius: 'var(--border-radius-lg, 8px)',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        marginBottom: 'var(--spacing-4, 16px)',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: 'var(--spacing-3, 12px)',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
-          {/* Search Input */}
+      <Card className="mb-6">
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1', minWidth: '250px' }}>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search by name, email, or phone..."
+                placeholder="Search staff members..."
+                className="form-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px 10px 40px',
-                  fontSize: 'var(--font-size-sm, 14px)',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)',
-                  outline: 'none',
-                  transition: 'all 0.2s ease'
-                }}
-                onFocus={(e) => {
-                  e.currentTarget.style.borderColor = '#f59e0b';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(245, 158, 11, 0.1)';
-                }}
-                onBlur={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--color-border, #e5e7eb)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}
+                style={{ paddingLeft: '40px' }}
               />
               <svg
                 width="18"
@@ -587,13 +516,7 @@ export default function Staff() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--color-text-muted)'
-                }}
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-gray-400)' }}
               >
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
@@ -601,200 +524,66 @@ export default function Staff() {
             </div>
           </div>
 
-          {/* Filters */}
-          <div style={{ display: 'flex', gap: 'var(--spacing-2, 8px)', alignItems: 'center' }}>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              style={{
-                padding: '10px 12px',
-                fontSize: 'var(--font-size-sm, 14px)',
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: 'var(--border-radius-md, 6px)',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                outline: 'none',
-                minWidth: '140px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <option value="">All Statuses</option>
-              {STAFF_STATUSES.map(status => (
-                <option key={status} value={status}>{status}</option>
-              ))}
-            </select>
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ width: '160px' }}
+          >
+            <option value="">All Statuses</option>
+            {STAFF_STATUSES.map(status => (
+              <option key={status} value={status}>{status}</option>
+            ))}
+          </select>
 
-            <button
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              style={{
-                padding: '10px 16px',
-                fontSize: 'var(--font-size-sm, 14px)',
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: 'var(--border-radius-md, 6px)',
-                backgroundColor: showAdvancedFilters ? '#fffbeb' : 'white',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                fontWeight: '500',
-                color: showAdvancedFilters ? '#f59e0b' : 'var(--color-text-secondary)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <FilterIcon /> Filters
-            </button>
+          <Button
+            variant={showAdvancedFilters ? 'secondary' : 'ghost'}
+            onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+            size="sm"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+            Filters
+          </Button>
 
-            {activeFiltersCount > 0 && (
-              <button
-                onClick={clearFilters}
-                style={{
-                  padding: '10px 16px',
-                  fontSize: 'var(--font-size-sm, 14px)',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)',
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontWeight: '500',
-                  color: 'var(--color-text-secondary)',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--color-bg-secondary, #f9fafb)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'white';
-                }}
-              >
-                <XIcon />
-                Clear ({activeFiltersCount})
-              </button>
-            )}
-          </div>
+          {(searchQuery || statusFilter || advancedFilters.role) && (
+            <Button variant="ghost" size="sm" onClick={clearFilters}>
+              Clear
+            </Button>
+          )}
         </div>
 
-        {/* Advanced Filters Panel */}
         {showAdvancedFilters && (
-          <div style={{
-            display: 'flex',
-            gap: 'var(--spacing-3, 12px)',
-            marginTop: 'var(--spacing-3, 12px)',
-            paddingTop: 'var(--spacing-3, 12px)',
-            borderTop: '1px solid var(--color-border, #e5e7eb)',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ flex: '1', minWidth: '160px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Role</label>
+          <div style={{ marginTop: 'var(--spacing-4)', paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-gray-100)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--spacing-4)' }}>
+            <div>
+              <label className="form-label">Role</label>
               <input
                 type="text"
                 placeholder="e.g. Developer"
+                className="form-input"
                 value={advancedFilters.role}
                 onChange={(e) => setAdvancedFilters(prev => ({ ...prev, role: e.target.value }))}
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: '13px',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
-                }}
               />
             </div>
-            <div style={{ flex: '1', minWidth: '160px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Department</label>
+            <div>
+              <label className="form-label">Department</label>
               <input
                 type="text"
                 placeholder="e.g. Engineering"
+                className="form-input"
                 value={advancedFilters.department}
                 onChange={(e) => setAdvancedFilters(prev => ({ ...prev, department: e.target.value }))}
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: '13px',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
-                }}
               />
             </div>
-            <button
-              onClick={() => setAdvancedFilters({ role: '', department: '' })}
-              style={{
-                padding: '8px 14px', fontSize: '13px',
-                border: '1px solid #fecaca', borderRadius: 'var(--border-radius-md, 6px)',
-                backgroundColor: '#fef2f2', color: '#dc2626',
-                cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap'
-              }}
-            >
-              Clear Filters
-            </button>
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <Button variant="secondary" size="sm" onClick={() => setAdvancedFilters({ role: '', department: '' })}>
+                Reset Filters
+              </Button>
+            </div>
           </div>
         )}
-
-        {/* Active Filters Display */}
-        {activeFiltersCount > 0 && (
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginTop: 'var(--spacing-3, 12px)',
-            flexWrap: 'wrap'
-          }}>
-            {searchQuery && (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 10px',
-                fontSize: 'var(--font-size-xs, 12px)',
-                fontWeight: '500',
-                color: '#92400e',
-                backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a',
-                borderRadius: 'var(--border-radius-full, 9999px)'
-              }}>
-                <FilterIcon style={{ width: 12, height: 12 }} />
-                Search: &quot;{searchQuery}&quot;
-              </span>
-            )}
-            {statusFilter && (
-              <span style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '4px 10px',
-                fontSize: 'var(--font-size-xs, 12px)',
-                fontWeight: '500',
-                color: '#92400e',
-                backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a',
-                borderRadius: 'var(--border-radius-full, 9999px)'
-              }}>
-                <FilterIcon style={{ width: 12, height: 12 }} />
-                Status: {statusFilter}
-              </span>
-            )}
-            {advancedFilters.role && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 10px', fontSize: 'var(--font-size-xs, 12px)', fontWeight: '500',
-                color: '#92400e', backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a', borderRadius: 'var(--border-radius-full, 9999px)'
-              }}>
-                <FilterIcon style={{ width: 12, height: 12 }} />
-                Role: {advancedFilters.role}
-              </span>
-            )}
-            {advancedFilters.department && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 10px', fontSize: 'var(--font-size-xs, 12px)', fontWeight: '500',
-                color: '#92400e', backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a', borderRadius: 'var(--border-radius-full, 9999px)'
-              }}>
-                <FilterIcon style={{ width: 12, height: 12 }} />
-                Dept: {advancedFilters.department}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
+      </Card>
 
       <div style={{
         backgroundColor: 'white',

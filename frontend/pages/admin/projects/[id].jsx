@@ -219,32 +219,76 @@ export default function ProjectDetail() {
         </div>
       )}
 
-      {/* Reference Link */}
-      {project.referenceLink && (
+      {/* Project Links Section */}
+      {(project.referenceLink || project.developmentLink || project.productionLink) && (
         <div className="card" style={{ marginBottom: '24px' }}>
           <div style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '10px' }}>Reference Link</h3>
-            <a
-              href={project.referenceLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '8px',
-                padding: '8px 16px', borderRadius: '8px',
-                backgroundColor: '#eff6ff', color: '#1e40af',
-                border: '1px solid #bfdbfe', fontSize: '14px', fontWeight: '500',
-                textDecoration: 'none', transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#dbeafe'; }}
-              onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = '#eff6ff'; }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                <polyline points="15 3 21 3 21 9" />
-                <line x1="10" y1="14" x2="21" y2="3" />
-              </svg>
-              {project.referenceLink.length > 60 ? project.referenceLink.substring(0, 60) + '…' : project.referenceLink}
-            </a>
+            <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '15px' }}>Project Links</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+              {project.referenceLink && (
+                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#1e40af', textTransform: 'uppercase', marginBottom: '8px' }}>Reference Link</div>
+                  <a
+                    href={project.referenceLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      color: '#2563eb', fontSize: '14px', fontWeight: '600',
+                      textDecoration: 'none', wordBreak: 'break-all'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                      <polyline points="15 3 21 3 21 9" />
+                      <line x1="10" y1="14" x2="21" y2="3" />
+                    </svg>
+                    {project.referenceLink.length > 40 ? project.referenceLink.substring(0, 40) + '...' : project.referenceLink}
+                  </a>
+                </div>
+              )}
+              {project.developmentLink && (
+                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>Development Link</div>
+                  <a
+                    href={project.developmentLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      color: '#3b82f6', fontSize: '14px', fontWeight: '600',
+                      textDecoration: 'none', wordBreak: 'break-all'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="19" y1="12" x2="5" y2="12" /><polyline points="12 19 5 12 12 5" />
+                    </svg>
+                    {project.developmentLink.length > 40 ? project.developmentLink.substring(0, 40) + '...' : project.developmentLink}
+                  </a>
+                </div>
+              )}
+              {project.productionLink && (
+                <div style={{ padding: '16px', borderRadius: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+                  <div style={{ fontSize: '12px', fontWeight: '700', color: '#166534', textTransform: 'uppercase', marginBottom: '8px' }}>Production Link</div>
+                  <a
+                    href={project.productionLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '8px',
+                      color: '#10b981', fontSize: '14px', fontWeight: '600',
+                      textDecoration: 'none', wordBreak: 'break-all'
+                    }}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+                      <circle cx="12" cy="12" r="10" />
+                    </svg>
+                    {project.productionLink.length > 40 ? project.productionLink.substring(0, 40) + '...' : project.productionLink}
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

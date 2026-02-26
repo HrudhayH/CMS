@@ -7,11 +7,11 @@ import { formatDate } from '../../../utils/helpers';
 // import { getStaffProject, addStaffProjectUpdate, getStaffProjectUpdates, addStaffUpdateReply } from '../../../services/api';
 
 import {
-  getStaffProject,
-  addStaffProjectUpdate,
-  getStaffProjectUpdates,
-  addStaffUpdateReply,
-  updateStaffDeploymentLinks
+    getStaffProject,
+    addStaffProjectUpdate,
+    getStaffProjectUpdates,
+    addStaffUpdateReply,
+    updateStaffDeploymentLinks
 } from '../../../services/api';
 
 /* ---------- Icons ---------- */
@@ -209,23 +209,23 @@ export default function StaffProjectDetails() {
                 setError('');
                 const response = await getStaffProject(id);
                 if (response.success && response.data) if (response.success && response.data) {
-    setProject(response.data);
+                    setProject(response.data);
 
-    // ✅ Correct mapping from backend fields
-    setDeploymentLinks({
-        development: response.data.developmentLink || '',
-        production: response.data.productionLink || ''
-    });
+                    // ✅ Correct mapping from backend fields
+                    setDeploymentLinks({
+                        development: response.data.developmentLink || '',
+                        production: response.data.productionLink || ''
+                    });
 
-    setUpdateForm({
-        status: response.data.status || '',
-        progress: response.data.progress || 0,
-        comment: '',
-    });
+                    setUpdateForm({
+                        status: response.data.status || '',
+                        progress: response.data.progress || 0,
+                        comment: '',
+                    });
 
-    fetchUpdates(1, true);
-}
- else {
+                    fetchUpdates(1, true);
+                }
+                else {
                     setError('Project not found');
                 }
             } catch (err) {
@@ -344,27 +344,27 @@ export default function StaffProjectDetails() {
         setShowLinksModal(true);
     };
 
-const handleSaveLinks = async () => {
-  try {
-    const response = await updateStaffDeploymentLinks(id, {
-      developmentLink: tempLinks.development,
-      productionLink: tempLinks.production
-    });
+    const handleSaveLinks = async () => {
+        try {
+            const response = await updateStaffDeploymentLinks(id, {
+                developmentLink: tempLinks.development,
+                productionLink: tempLinks.production
+            });
 
-    if (response.success) {
-      setDeploymentLinks({
-        development: response.data.developmentLink || '',
-        production: response.data.productionLink || ''
-      });
+            if (response.success) {
+                setDeploymentLinks({
+                    development: response.data.developmentLink || '',
+                    production: response.data.productionLink || ''
+                });
 
-      setShowLinksModal(false);
-      setSuccess('Deployment links updated successfully!');
-      setTimeout(() => setSuccess(''), 3000);
-    }
-  } catch (err) {
-    setError(err.message || 'Failed to update links');
-  }
-};
+                setShowLinksModal(false);
+                setSuccess('Deployment links updated successfully!');
+                setTimeout(() => setSuccess(''), 3000);
+            }
+        } catch (err) {
+            setError(err.message || 'Failed to update links');
+        }
+    };
 
 
 
@@ -1580,91 +1580,90 @@ const handleSaveLinks = async () => {
                                         </div>
                                     </div>
 
-                                    {/* Reference Link Card */}
-                                    <div className="info-card full-width-card">
-                                        <div className="card-header-custom">
-                                            <div className="card-icon">
-                                                <ExternalLinkIcon />
-                                            </div>
-                                            <h3 className="card-title-custom">Reference Link</h3>
-                                        </div>
-                                        <div className="info-row">
-                                            <div className="info-icon">
-                                                <LinkIcon />
-                                            </div>
-                                            <div className="info-content">
-                                                <div className="info-label">Reference (Figma, Docs, etc.)</div>
-                                                {project.referenceLink ? (
-                                                    <a
-                                                        href={project.referenceLink}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        className="link-value"
-                                                    >
-                                                        {project.referenceLink}
-                                                        <ExternalLinkIcon />
-                                                    </a>
-                                                ) : (
-                                                    <div className="info-value link-value-empty">No reference link added</div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Deployment Links Card - NEW */}
+                                    {/* Project Links Card */}
                                     <div className="info-card full-width-card">
                                         <div className="card-header-with-action">
                                             <div className="card-header-left">
                                                 <div className="card-icon">
                                                     <LinkIcon />
                                                 </div>
-                                                <h3 className="card-title-custom">Deployment Links</h3>
+                                                <h3 className="card-title-custom">Project Links</h3>
                                             </div>
                                             <button className="edit-button" onClick={handleEditLinks}>
                                                 <EditIcon />
-                                                Edit
+                                                Edit Links
                                             </button>
                                         </div>
-                                        <div className="info-row">
-                                            <div className="info-icon">
-                                                <CodeIcon />
+
+                                        <div className="tech-stack-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', padding: '10px 0' }}>
+                                            {/* Reference Link */}
+                                            <div className="info-row" style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                                                <div className="info-icon">
+                                                    <ExternalLinkIcon />
+                                                </div>
+                                                <div className="info-content">
+                                                    <div className="info-label">Reference (Figma, Docs, etc.)</div>
+                                                    {project.referenceLink ? (
+                                                        <a
+                                                            href={project.referenceLink}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="link-value"
+                                                        >
+                                                            {project.referenceLink.length > 30 ? project.referenceLink.substring(0, 30) + '...' : project.referenceLink}
+                                                            <ExternalLinkIcon />
+                                                        </a>
+                                                    ) : (
+                                                        <div className="info-value link-value-empty">No reference link</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <div className="info-content">
-                                                <div className="info-label">Development Link</div>
-                                                {deploymentLinks.development ? (
-                                                    <a 
-                                                        href={deploymentLinks.development} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="link-value"
-                                                    >
-                                                        {deploymentLinks.development}
-                                                        <ExternalLinkIcon />
-                                                    </a>
-                                                ) : (
-                                                    <div className="info-value link-value-empty">Not Added Yet</div>
-                                                )}
+
+                                            {/* Development Link */}
+                                            <div className="info-row" style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f8fafc' }}>
+                                                <div className="info-icon">
+                                                    <CodeIcon />
+                                                </div>
+                                                <div className="info-content">
+                                                    <div className="info-label">Development Link</div>
+                                                    {deploymentLinks.development ? (
+                                                        <a
+                                                            href={deploymentLinks.development}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="link-value"
+                                                        >
+                                                            {deploymentLinks.development.length > 30 ? deploymentLinks.development.substring(0, 30) + '...' : deploymentLinks.development}
+                                                            <ExternalLinkIcon />
+                                                        </a>
+                                                    ) : (
+                                                        <div className="info-value link-value-empty">Not Added Yet</div>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="info-row">
-                                            <div className="info-icon">
-                                                <TrendingUpIcon />
-                                            </div>
-                                            <div className="info-content">
-                                                <div className="info-label">Production Link</div>
-                                                {deploymentLinks.production ? (
-                                                    <a 
-                                                        href={deploymentLinks.production} 
-                                                        target="_blank" 
-                                                        rel="noopener noreferrer"
-                                                        className="link-value"
-                                                    >
-                                                        {deploymentLinks.production}
-                                                        <ExternalLinkIcon />
-                                                    </a>
-                                                ) : (
-                                                    <div className="info-value link-value-empty">Not Added Yet</div>
-                                                )}
+
+                                            {/* Production Link */}
+                                            <div className="info-row" style={{ border: '1px solid #f1f5f9', padding: '12px', borderRadius: '8px', background: '#f0fdf4' }}>
+                                                <div className="info-icon">
+                                                    <TrendingUpIcon />
+                                                </div>
+                                                <div className="info-content">
+                                                    <div className="info-label">Production Link</div>
+                                                    {deploymentLinks.production ? (
+                                                        <a
+                                                            href={deploymentLinks.production}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="link-value"
+                                                            style={{ color: '#10b981' }}
+                                                        >
+                                                            {deploymentLinks.production.length > 30 ? deploymentLinks.production.substring(0, 30) + '...' : deploymentLinks.production}
+                                                            <ExternalLinkIcon />
+                                                        </a>
+                                                    ) : (
+                                                        <div className="info-value link-value-empty">Not Added Yet</div>
+                                                    )}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>

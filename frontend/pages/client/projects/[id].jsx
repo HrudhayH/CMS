@@ -3,12 +3,15 @@ import { useRouter } from 'next/router';
 import { withClientLayout } from '../../../layouts/ClientLayout';
 import { getClientProject } from '../../../services/api';
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
 const getStatusStyles = (status) => {
     const styles = {
-        'New': { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' },
+        'Active': { bg: '#f0fdf4', color: '#166534', border: '#dcfce7' },
         'In Progress': { bg: '#eff6ff', color: '#1e40af', border: '#dbeafe' },
-        'Completed': { bg: '#f0fdf4', color: '#166534', border: '#dcfce7' },
         'On Hold': { bg: '#fff7ed', color: '#9a3412', border: '#ffedd5' },
+        'Completed': { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' },
+        'New': { bg: '#eff6ff', color: '#1e40af', border: '#dbeafe' },
     };
     return styles[status] || styles['In Progress'];
 };
@@ -39,15 +42,12 @@ function ClientProjectDetails() {
         fetchProject();
     }, [id]);
 
-    const formatUpdateDate = (dateString) => {
-        if (!dateString) return '';
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
+    const formatDate = (dateString) => {
+        if (!dateString) return 'Not Set';
+        return new Date(dateString).toLocaleDateString('en-US', {
             month: 'short',
             day: 'numeric',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
+            year: 'numeric'
         });
     };
 
@@ -76,181 +76,331 @@ function ClientProjectDetails() {
 
     if (!project) return null;
 
-    const currentStatusStyle = getStatusStyles(project.status);
+    const statusStyle = getStatusStyles(project.status);
 
     return (
-        <div className="project-details-container">
+        <div className="project-detail-view">
             <style jsx>{`
-                .project-details-container {
-                    padding-bottom: 40px;
+                .project-detail-view {
+                    padding: 0 0 40px 0;
+                    color: #1e293b;
                 }
 
-                .back-btn {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 8px;
-                    color: #64748b;
-                    text-decoration: none;
-                    font-size: 14px;
-                    font-weight: 600;
-                    margin-bottom: 32px;
-                    background: none;
-                    border: none;
-                    cursor: pointer;
-                    padding: 0;
-                    transition: color 0.2s;
-                }
-
-                .back-btn:hover {
-                    color: #3b82f6;
-                }
-
-                /* Project Summary Card - Premium Header */
-                .summary-card {
+                /* Header Card */
+                .header-card {
                     background: white;
-                    border-radius: 16px;
-                    padding: 40px;
-                    border: none;
-                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-                    margin-bottom: 40px;
-                }
-
-                .summary-header {
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    padding: 24px 32px;
+                    margin-bottom: 24px;
+                    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
                     display: flex;
                     justify-content: space-between;
-                    align-items: flex-start;
-                    margin-bottom: 32px;
+                    align-items: center;
                     gap: 24px;
                 }
 
-                .project-title-section h1 {
-                    font-size: 36px;
-                    font-weight: 800;
-                    color: #1e293b;
-                    margin: 0 0 12px 0;
-                    line-height: 1.2;
+                .project-header-left {
+                    flex: 1;
                 }
 
-                .tech-stack {
+                .title-row {
                     display: flex;
-                    gap: 8px;
-                    flex-wrap: wrap;
+                    align-items: center;
+                    gap: 16px;
+                    margin-bottom: 12px;
                 }
 
-                .tech-badge {
+                .title-row h1 {
+                    font-size: 26px;
+                    font-weight: 800;
+                    margin: 0;
+                    color: #0f172a;
+                    letter-spacing: -0.02em;
+                }
+
+                .project-meta-row {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    font-size: 14px;
+                    color: #64748b;
+                    font-weight: 500;
+                }
+
+                .project-id {
+                    background: #f1f5f9;
+                    color: #475569;
+                    padding: 2px 10px;
+                    border-radius: 6px;
+                    font-family: 'JetBrains Mono', monospace;
                     font-size: 12px;
-                    background: #eff6ff;
-                    color: #1e40af;
-                    padding: 6px 12px;
-                    border-radius: 8px;
-                    font-weight: 600;
+                    letter-spacing: 0.05em;
+                }
+
+                .meta-divider {
+                    color: #e2e8f0;
                 }
 
                 .status-badge {
-                    padding: 10px 20px;
-                    border-radius: 12px;
-                    font-size: 13px;
+                    padding: 6px 14px;
+                    border-radius: 8px;
+                    font-size: 11px;
                     font-weight: 700;
-                    border: 1px solid;
+                    border: 1.5px solid;
                     text-transform: uppercase;
-                    white-space: nowrap;
+                    letter-spacing: 0.05em;
                 }
 
-                .deployment-links-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 16px;
-                }
-
-                .deployment-link-item {
+                .action-button-group {
                     display: flex;
-                    flex-direction: column;
-                    gap: 8px;
+                    align-items: center;
+                    gap: 12px;
                 }
 
-                .deployment-link-item label {
-                    font-size: 12px;
-                    color: #94a3b8;
-                    text-transform: uppercase;
-                    font-weight: 700;
-                    letter-spacing: 0.5px;
-                }
-
-                .link-button {
-                    display: inline-flex;
+                .btn-action {
+                    display: flex;
                     align-items: center;
                     gap: 8px;
-                    padding: 12px 20px;
+                    padding: 10px 18px;
+                    border-radius: 10px;
+                    font-size: 14px;
+                    font-weight: 600;
                     text-decoration: none;
+                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                    border: 1px solid transparent;
+                }
+
+                .btn-action.dev {
+                    background: #eff6ff;
+                    color: #2563eb;
+                    border-color: #dbeafe;
+                }
+
+                .btn-action.dev:hover {
+                    background: #dbeafe;
+                    transform: translateY(-1px);
+                }
+
+                .btn-action.live {
+                    background: #f0fdf4;
+                    color: #16a34a;
+                    border-color: #dcfce7;
+                }
+
+                .btn-action.live:hover {
+                    background: #dcfce7;
+                    transform: translateY(-1px);
+                }
+
+                .btn-primary-gradient {
+                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+                    color: white;
+                    border: none;
+                    padding: 10px 22px;
                     border-radius: 10px;
                     font-weight: 600;
                     font-size: 14px;
-                    transition: all 0.2s;
-                    border: none;
                     cursor: pointer;
-                    width: fit-content;
-                }
-
-                .link-button.production {
-                    background: #10b981;
-                    color: white;
-                }
-
-                .link-button.production:hover {
-                    background: #059669;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-                }
-
-                .link-button.development {
-                    background: #3b82f6;
-                    color: white;
-                }
-
-                .link-button.development:hover {
-                    background: #2563eb;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-                }
-
-                .link-button-disabled {
-                    display: inline-flex;
+                    display: flex;
                     align-items: center;
-                    gap: 8px;
-                    padding: 12px 20px;
-                    background: #f3f4f6;
-                    color: #6b7280;
-                    border-radius: 10px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    cursor: not-allowed;
-                    border: none;
+                    gap: 10px;
+                    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+                    transition: all 0.2s;
                 }
 
-                /* Main Content Grid */
-                .main-content {
+                .btn-primary-gradient:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+                    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+                }
+
+                /* Middle Content */
+                .content-grid {
                     display: grid;
-                    grid-template-columns: 2fr 1fr;
-                    gap: 32px;
+                    grid-template-columns: 1.5fr 1fr;
+                    gap: 24px;
                 }
 
                 .card {
                     background: white;
-                    border-radius: 16px;
-                    padding: 32px;
-                    border: 1px solid #f1f5f9;
-                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                    border-radius: 12px;
+                    border: 1px solid #e2e8f0;
+                    padding: 24px;
                     margin-bottom: 24px;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
                 }
 
                 .card-title {
-                    font-size: 20px;
-                    font-weight: 700;
-                    color: #1e293b;
-                    margin: 0 0 24px 0;
+                    font-size: 18px;
+                    font-weight: 600;
+                    margin: 0 0 20px 0;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
                 }
 
-                /* Team Section */
+                /* Overview Card */
+                .overview-desc {
+                    font-size: 15px;
+                    line-height: 1.6;
+                    color: #475569;
+                    margin-bottom: 24px;
+                }
+
+                .tech-stack {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                    margin-bottom: 24px;
+                }
+
+                .tech-tag {
+                    background: #f8fafc;
+                    border: 1px solid #e2e8f0;
+                    padding: 4px 10px;
+                    border-radius: 6px;
+                    font-size: 12px;
+                    font-weight: 500;
+                    color: #64748b;
+                }
+
+                .timeline-simple {
+                    display: flex;
+                    align-items: center;
+                    margin-bottom: 24px;
+                    padding: 16px;
+                    background: #f8fafc;
+                    border-radius: 8px;
+                }
+
+                .timeline-point {
+                    flex: 1;
+                    text-align: center;
+                }
+
+                .timeline-label {
+                    font-size: 11px;
+                    color: #94a3b8;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    margin-bottom: 4px;
+                }
+
+                .timeline-value {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #1e293b;
+                }
+
+                .timeline-line {
+                    height: 2px;
+                    background: #e2e8f0;
+                    width: 40px;
+                    margin: 15px 10px 0 10px;
+                }
+
+                /* Progress Bar */
+                .progress-section {
+                    margin-top: 24px;
+                }
+
+                .progress-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 8px;
+                }
+
+                .progress-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                }
+
+                .progress-percent {
+                    font-size: 14px;
+                    font-weight: 700;
+                    color: #3b82f6;
+                }
+
+                .progress-bar-container {
+                    height: 10px;
+                    background: #f1f5f9;
+                    border-radius: 5px;
+                    overflow: hidden;
+                }
+
+                .progress-bar-fill {
+                    height: 100%;
+                    background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+                    transition: width 0.5s ease-out;
+                }
+
+                /* Documents Card */
+                .doc-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .doc-item {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    padding: 14px;
+                    border: 1px solid #f1f5f9;
+                    border-radius: 8px;
+                    background: #f8fafc;
+                    transition: all 0.2s;
+                }
+
+                .doc-item:hover {
+                    border-color: #dbeafe;
+                    background: #f1f7ff;
+                }
+
+                .doc-info {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                }
+
+                .doc-name {
+                    font-size: 14px;
+                    font-weight: 500;
+                    color: #334155;
+                }
+
+                .doc-action {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #3b82f6;
+                    text-decoration: none;
+                }
+
+                .back-navigation {
+                    margin-bottom: 24px;
+                }
+
+                .back-btn {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    background: none;
+                    border: none;
+                    color: #64748b;
+                    font-size: 14px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    padding: 0;
+                    transition: all 0.2s;
+                }
+
+                .back-btn:hover {
+                    color: #3b82f6;
+                    transform: translateX(-4px);
+                }
+
+                /* Team Card */
                 .team-list {
                     display: flex;
                     flex-direction: column;
@@ -261,380 +411,295 @@ function ClientProjectDetails() {
                     display: flex;
                     align-items: center;
                     gap: 12px;
-                    padding: 12px;
-                    border-radius: 12px;
-                    background: #f8fafc;
                 }
 
-                .member-avatar {
+                .avatar {
                     width: 40px;
                     height: 40px;
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    color: white;
                     border-radius: 50%;
+                    background: #3b82f6;
+                    color: white;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     font-weight: 700;
                     font-size: 14px;
+                    text-transform: uppercase;
                 }
 
-                .member-info {
-                    flex: 1;
+                .member-details {
+                    display: flex;
+                    flex-direction: column;
                 }
 
                 .member-name {
                     font-size: 14px;
                     font-weight: 600;
                     color: #1e293b;
-                    display: block;
-                    margin: 0;
                 }
 
                 .member-role {
                     font-size: 12px;
                     color: #64748b;
-                    margin: 0;
                 }
 
-                /* Updates Timeline */
-                .updates-timeline {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 24px;
-                    position: relative;
-                }
-
-                .updates-timeline::before {
-                    content: '';
-                    position: absolute;
-                    left: 19px;
-                    top: 0;
-                    bottom: 0;
-                    width: 2px;
-                    background: #f1f5f9;
-                }
-
-                .update-item {
-                    display: flex;
-                    gap: 20px;
-                    position: relative;
-                }
-
-                .update-dot {
-                    width: 40px;
-                    height: 40px;
-                    border-radius: 50%;
-                    background: white;
-                    border: 4px solid #f1f5f9;
+                /* Buttons */
+                .btn-primary {
+                    background: #3b82f6;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    cursor: pointer;
+                    transition: background 0.2s;
                     display: flex;
                     align-items: center;
-                    justify-content: center;
-                    z-index: 2;
-                    flex-shrink: 0;
-                }
-
-                .update-content {
-                    background: #f8fafc;
-                    padding: 20px;
-                    border-radius: 16px;
-                    flex: 1;
-                    border: 1px solid #f1f5f9;
-                }
-
-                .update-header {
-                    display: flex;
-                    justify-content: space-between;
-                    margin-bottom: 8px;
-                    flex-wrap: wrap;
                     gap: 8px;
                 }
 
-                .update-staff {
-                    font-weight: 700;
-                    color: #1e293b;
-                    font-size: 14px;
+                .btn-primary:hover {
+                    background: #2563eb;
                 }
 
-                .update-date {
-                    font-size: 12px;
-                    color: #94a3b8;
+                .btn-outline {
+                    background: transparent;
+                    color: #3b82f6;
+                    border: 1px solid #3b82f6;
+                    padding: 6px 12px;
+                    border-radius: 6px;
+                    font-weight: 600;
+                    font-size: 13px;
+                    cursor: pointer;
+                    text-decoration: none;
+                    display: inline-block;
                 }
 
-                .update-comment {
-                    font-size: 15px;
-                    color: #475569;
-                    line-height: 1.6;
-                    margin: 0;
+                .btn-outline:hover {
+                    background: #eff6ff;
                 }
 
-                /* Help Card */
-                .help-card {
-                    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-                    border: 1px solid #bfdbfe;
-                }
-
-                .help-card .card-title {
-                    color: #1e40af;
-                }
-
-                .help-card p {
-                    color: #1e40af;
-                    opacity: 0.85;
-                    margin: 0;
-                    line-height: 1.6;
-                }
-
-                @media (max-width: 1024px) {
-                    .main-content {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .deployment-links-grid {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .summary-header {
+                @media (max-width: 968px) {
+                    .header-card {
                         flex-direction: column;
-                        align-items: flex-start;
-                    }
-                }
-
-                @media (max-width: 768px) {
-                    .summary-card {
+                        align-items: stretch;
+                        gap: 20px;
                         padding: 24px;
                     }
 
-                    .project-title-section h1 {
-                        font-size: 28px;
-                    }
-
-                    .summary-header {
+                    .action-button-group {
                         flex-direction: column;
+                        width: 100%;
                     }
 
-                    .deployment-links-grid {
+                    .btn-action, .btn-primary-gradient {
+                        width: 100%;
+                        justify-content: center;
+                    }
+
+                    .content-grid {
                         grid-template-columns: 1fr;
                     }
                 }
             `}</style>
 
             {/* Back Button */}
-            <button className="back-btn" onClick={() => router.push('/client/projects')}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Back to Projects
-            </button>
+            <div className="back-navigation">
+                <button
+                    className="back-btn"
+                    onClick={() => router.push('/client/projects')}
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="19" y1="12" x2="5" y2="12"></line>
+                        <polyline points="12 19 5 12 12 5"></polyline>
+                    </svg>
+                    Back to Projects
+                </button>
+            </div>
 
-            {/* PROJECT SUMMARY CARD */}
-            <div className="summary-card">
-                <div className="summary-header">
-                    <div className="project-title-section">
+            {/* Header Section */}
+            <div className="header-card">
+                <div className="project-header-left">
+                    <div className="title-row">
                         <h1>{project.title}</h1>
-                        <div className="tech-stack">
-                            {project.techStack?.map((tech, i) => (
-                                <span key={i} className="tech-badge">{tech}</span>
-                            ))}
-                        </div>
+                        <span className="status-badge" style={{ backgroundColor: statusStyle.bg, color: statusStyle.color, borderColor: statusStyle.border }}>
+                            {project.status}
+                        </span>
                     </div>
-                    <div
-                        className="status-badge"
-                        style={{
-                            background: currentStatusStyle.bg,
-                            color: currentStatusStyle.color,
-                            borderColor: currentStatusStyle.border
-                        }}
-                    >
-                        {project.status}
+
+                    <div className="project-meta-row">
+                        <span className="project-id">ID: {project.projectCode || project._id.slice(-6).toUpperCase()}</span>
+                        <span className="meta-divider">|</span>
+                        <span className="meta-dates">📅 {formatDate(project.startDate)} — {formatDate(project.endDate)}</span>
                     </div>
                 </div>
 
-                {/* Project Description */}
-                <div style={{ marginBottom: '32px' }}>
-                    <p style={{ fontSize: '16px', color: '#475569', lineHeight: '1.7', margin: 0 }}>
-                        {project.description || 'No description provided for this project.'}
-                    </p>
-                </div>
-
-                {/* Deployment Links Grid */}
-                <div className="deployment-links-grid">
-                    <div className="deployment-link-item">
-                        <label>🚀 Production Link</label>
-                        {project.productionLink ? (
-                            <a 
-                                href={project.productionLink} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="link-button production"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                    <polyline points="15 3 21 3 21 9" />
-                                    <line x1="10" y1="14" x2="21" y2="3" />
-                                </svg>
-                                Visit Live Project
+                <div className="project-header-right">
+                    <div className="action-button-group">
+                        {project.developmentLink && (
+                            <a href={project.developmentLink} target="_blank" rel="noopener noreferrer" className="btn-action dev">
+                                <span className="icon">🛠️</span>
+                                Dev Site
                             </a>
-                        ) : (
-                            <button className="link-button-disabled">
-                                Not yet available
-                            </button>
                         )}
-                    </div>
-
-                    <div className="deployment-link-item">
-                        <label>🔧 Development Link</label>
-                        {project.developmentLink ? (
-                            <a 
-                                href={project.developmentLink} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="link-button development"
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
-                                    <polyline points="15 3 21 3 21 9" />
-                                    <line x1="10" y1="14" x2="21" y2="3" />
-                                </svg>
-                                View Development
+                        {project.productionLink && (
+                            <a href={project.productionLink} target="_blank" rel="noopener noreferrer" className="btn-action live">
+                                <span className="icon">🌐</span>
+                                Live Site
                             </a>
-                        ) : (
-                            <button className="link-button-disabled">
-                                Not yet available
-                            </button>
                         )}
+                        <button
+                            className="btn-primary-gradient"
+                            onClick={() => router.push(`/client/updates/${project._id}`)}
+                        >
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                            New Updates
+                        </button>
                     </div>
                 </div>
             </div>
 
-            {/* MAIN CONTENT GRID */}
-            <div className="main-content">
-                {/* LEFT COLUMN - UPDATES */}
-                <div>
-                    {/* Roadmap & Discussion Navigation */}
+            {/* Middle Section */}
+            <div className="content-grid">
+                {/* Left Column */}
+                <div className="left-column">
                     <div className="card">
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                            <h3 className="card-title" style={{ margin: 0 }}>📚 Resources</h3>
+                        <h3 className="card-title">📝 Project Overview</h3>
+                        <p className="overview-desc">
+                            {project.description || 'No project description provided.'}
+                        </p>
+
+                        <div className="tech-stack">
+                            {project.techStack?.map((tech, i) => (
+                                <span key={i} className="tech-tag">{tech}</span>
+                            ))}
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            <button
-                                onClick={() => router.push(`/client/projects/${id}/roadmap`)}
-                                style={{
-                                    padding: '16px',
-                                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '10px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"></path>
-                                </svg>
-                                View Roadmap
-                            </button>
-                            <button
-                                onClick={() => router.push(`/client/projects/${id}/updates`)}
-                                style={{
-                                    padding: '16px',
-                                    background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '10px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    transition: 'all 0.2s',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    gap: '8px'
-                                }}
-                                onMouseOver={(e) => e.target.style.transform = 'translateY(-2px)'}
-                                onMouseOut={(e) => e.target.style.transform = 'translateY(0)'}
-                            >
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                    <path d="M12 2v20M2 12h20"></path>
-                                </svg>
-                                View Updates
-                            </button>
+
+                        <div className="timeline-simple">
+                            <div className="timeline-point">
+                                <div className="timeline-label">Start Date</div>
+                                <div className="timeline-value">{formatDate(project.startDate)}</div>
+                            </div>
+                            <div className="timeline-line"></div>
+                            <div className="timeline-point">
+                                <div className="timeline-label">Deadline</div>
+                                <div className="timeline-value">{formatDate(project.endDate)}</div>
+                            </div>
+                        </div>
+
+                        <div className="progress-section">
+                            <div className="progress-header">
+                                <span className="progress-label">Overall Completion</span>
+                                <span className="progress-percent">{project.progress || 0}%</span>
+                            </div>
+                            <div className="progress-bar-container">
+                                <div
+                                    className="progress-bar-fill"
+                                    style={{ width: `${project.progress || 0}%` }}
+                                ></div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Project Updates Section */}
-                    <div className="card">
-                        <h3 className="card-title">📋 Latest Updates</h3>
-                        {!project.dailyUpdates || project.dailyUpdates.length === 0 ? (
-                            <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8', background: '#f8fafc', borderRadius: '12px' }}>
-                                <p style={{ margin: 0, fontSize: '15px' }}>No updates have been posted yet. Check back soon!</p>
-                            </div>
-                        ) : (
-                            <div className="updates-timeline">
-                                {project.dailyUpdates.slice().reverse().slice(0, 3).map((update, i) => (
-                                    <div key={i} className="update-item">
-                                        <div className="update-dot">
-                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="3">
-                                                <polyline points="20 6 9 17 4 12"></polyline>
-                                            </svg>
-                                        </div>
-                                        <div className="update-content">
-                                            <div className="update-header">
-                                                <span className="update-staff">{update.staff?.name || 'Staff Member'}</span>
-                                                <span className="update-date">{formatUpdateDate(update.createdAt)}</span>
-                                            </div>
-                                            <p className="update-comment">{update.comment}</p>
-                                            {update.progress !== undefined && (
-                                                <div style={{ marginTop: '12px', fontSize: '13px', fontWeight: '600', color: '#3b82f6' }}>
-                                                    Progress: {update.progress}%
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                    {/* Resources section - Simplified as secondary info */}
+                    <div className="card" style={{ padding: '20px' }}>
+                        <div style={{ display: 'flex', gap: '16px' }}>
+                            <a
+                                href={`/client/projects/${project._id}/roadmap`}
+                                className="btn-outline"
+                                style={{ flex: 1, textAlign: 'center' }}
+                            >
+                                🗺️ Full Project Roadmap
+                            </a>
+                            <a
+                                href={`/client/updates/${project._id}`}
+                                className="btn-outline"
+                                style={{ flex: 1, textAlign: 'center' }}
+                            >
+                                📋 All Daily Updates
+                            </a>
+                        </div>
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN - TEAM & HELP */}
-                <div>
-                    {/* Team Members */}
+                {/* Right Column */}
+                <div className="right-column">
+                    <div className="card">
+                        <h3 className="card-title">📁 Documents</h3>
+                        <div className="doc-list">
+                            {/* Document Link */}
+                            {project.document_link ? (
+                                <div className="doc-item">
+                                    <div className="doc-info">
+                                        <span style={{ fontSize: '20px' }}>🔗</span>
+                                        <span className="doc-name">Project Documentation</span>
+                                    </div>
+                                    <a href={project.document_link} target="_blank" rel="noopener noreferrer" className="doc-action">
+                                        Open Link
+                                    </a>
+                                </div>
+                            ) : project.referenceLink ? (
+                                <div className="doc-item">
+                                    <div className="doc-info">
+                                        <span style={{ fontSize: '20px' }}>🔗</span>
+                                        <span className="doc-name">Reference Link</span>
+                                    </div>
+                                    <a href={project.referenceLink} target="_blank" rel="noopener noreferrer" className="doc-action">
+                                        Open Link
+                                    </a>
+                                </div>
+                            ) : null}
+
+                            {/* Uploaded PDF */}
+                            {project.document_file_url ? (
+                                <div className="doc-item">
+                                    <div className="doc-info">
+                                        <span style={{ fontSize: '20px' }}>📄</span>
+                                        <span className="doc-name">{project.document_file_name || 'Project Document.pdf'}</span>
+                                    </div>
+                                    <a href={`${API_URL}${project.document_file_url}`} target="_blank" rel="noopener noreferrer" className="doc-action">
+                                        Download
+                                    </a>
+                                </div>
+                            ) : null}
+
+                            {!project.document_link && !project.document_file_url && !project.referenceLink && (
+                                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0, textAlign: 'center', padding: '10px' }}>
+                                    No documents attached yet.
+                                </p>
+                            )}
+                        </div>
+                    </div>
+
                     <div className="card">
                         <h3 className="card-title">👥 Assigned Team</h3>
                         <div className="team-list">
                             {project.assignedStaff?.length > 0 ? (
                                 project.assignedStaff.map((staff, i) => (
                                     <div key={i} className="team-member">
-                                        <div className="member-avatar">{staff.name?.charAt(0).toUpperCase()}</div>
-                                        <div className="member-info">
+                                        <div className="avatar">
+                                            {staff.name?.charAt(0)}
+                                        </div>
+                                        <div className="member-details">
                                             <span className="member-name">{staff.name}</span>
-                                            <span className="member-role">Technical Staff</span>
+                                            <span className="member-role">Software Engineer</span>
                                         </div>
                                     </div>
                                 ))
                             ) : (
-                                <p style={{ color: '#94a3b8', fontSize: '14px', textAlign: 'center', margin: 0 }}>
-                                    No team members assigned yet.
-                                </p>
+                                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>No team assigned yet.</p>
                             )}
                         </div>
                     </div>
 
-                    {/* Help Card */}
-                    <div className="card help-card">
-                        <h3 className="card-title">💬 Need Help?</h3>
-                        <p>
-                            If you have questions about this project, please contact your account manager directly. We're here to support you!
+                    <div className="card" style={{ background: '#f8fafc', borderStyle: 'dashed' }}>
+                        <h3 className="card-title" style={{ fontSize: '16px', color: '#64748b' }}>💬 Support</h3>
+                        <p style={{ fontSize: '13px', color: '#64748b', lineHeight: '1.5', margin: 0 }}>
+                            Need assistance with this project? Contact your relationship manager for direct support.
                         </p>
                     </div>
                 </div>

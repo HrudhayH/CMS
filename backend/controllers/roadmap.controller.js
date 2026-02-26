@@ -54,7 +54,7 @@ exports.createRoadmap = async (req, res) => {
 exports.addPhase = async (req, res) => {
     try {
         const projectId = req.params.id;
-        const phaseData = req.body; // Expects { name, startDate, endDate, status, progress, milestones, latestComment }
+        const phaseData = req.body;
 
         // ✅ Validation
         if (!phaseData.name || !phaseData.name.trim()) {
@@ -67,37 +67,50 @@ exports.addPhase = async (req, res) => {
             return res.status(400).json({ message: 'End date is required' });
         }
 
+        // At least one document (link or file) must be provided
+        if (!phaseData.document_link && !req.file) {
+            return res.status(400).json({ message: 'At least one document (link or file) is required' });
+        }
+
         console.log('[addPhase] Adding phase for projectId:', projectId, 'phaseData:', phaseData);
 
         const roadmap = await Roadmap.findOne({ project: projectId });
         if (!roadmap) {
-            return res.status(404).json({ message: 'Roadmap not found. Create it first.' });
+            return res.status(404).json({ message: 'Roadmap not found.' });
         }
 
-        // ✅ Clean the phase data before adding
+        // Parse milestones if it's stringyfied (due to multipart/form-data)
+        let milestones = [];
+        if (phaseData.milestones) {
+            try {
+                milestones = typeof phaseData.milestones === 'string' ? JSON.parse(phaseData.milestones) : phaseData.milestones;
+            } catch (e) {
+                console.error('Error parsing milestones:', e);
+            }
+        }
+
+        // ✅ Map new document fields
         const cleanPhaseData = {
             name: phaseData.name.trim(),
             startDate: phaseData.startDate,
             endDate: phaseData.endDate,
             status: phaseData.status || 'Not Started',
             progress: parseInt(phaseData.progress) || 0,
-            milestones: Array.isArray(phaseData.milestones) ? phaseData.milestones : [],
+            milestones: milestones,
+            document_link: phaseData.document_link || '',
+            document_file_url: req.file ? `/uploads/roadmap/${req.file.filename}` : '',
+            document_file_name: req.file ? req.file.originalname : '',
+            uploaded_at: req.file ? new Date() : null,
             latestComment: phaseData.latestComment || ''
         };
-
-        console.log('[addPhase] Clean phase data:', cleanPhaseData);
 
         roadmap.phases.push(cleanPhaseData);
         await roadmap.save();
 
-        console.log('[addPhase] Phase added successfully');
         res.status(201).json(roadmap);
     } catch (error) {
-        console.error('[addPhase] Error adding phase:', error.message, error.stack);
-        res.status(500).json({ 
-            message: 'Server error adding phase',
-            error: error.message
-        });
+        console.error('[addPhase] Error:', error);
+        res.status(500).json({ message: 'Server error adding phase', error: error.message });
     }
 };
 
@@ -106,14 +119,7 @@ exports.updatePhase = async (req, res) => {
     try {
         const projectId = req.params.id;
         const { phaseId } = req.params;
-        const updates = req.body; // Expects fields to update
-
-        // ✅ Validation
-        if (updates.name && !updates.name.trim()) {
-            return res.status(400).json({ message: 'Phase name cannot be empty' });
-        }
-
-        console.log('[updatePhase] Updating phase:', { projectId, phaseId, updates });
+        const updates = req.body;
 
         const roadmap = await Roadmap.findOne({ project: projectId });
         if (!roadmap) {
@@ -125,28 +131,44 @@ exports.updatePhase = async (req, res) => {
             return res.status(404).json({ message: 'Phase not found' });
         }
 
-        // ✅ Apply updates with validation
+        // ✅ Apply updates
         if (updates.name) phase.name = updates.name.trim();
         if (updates.startDate) phase.startDate = updates.startDate;
         if (updates.endDate) phase.endDate = updates.endDate;
         if (updates.status) phase.status = updates.status;
-        if (updates.progress !== undefined) phase.progress = updates.progress;
+        if (updates.progress !== undefined) phase.progress = parseInt(updates.progress);
         if (updates.latestComment !== undefined) phase.latestComment = updates.latestComment;
 
-        // Handle milestones update - validate and clean
+        // Handle document link update
+        if (updates.document_link !== undefined) {
+            phase.document_link = updates.document_link.trim();
+        }
+
+        // Handle file upload
+        if (req.file) {
+            phase.document_file_url = `/uploads/roadmap/${req.file.filename}`;
+            phase.document_file_name = req.file.originalname;
+            phase.uploaded_at = new Date();
+        } else if (updates.remove_file === 'true') {
+            phase.document_file_url = '';
+            phase.document_file_name = '';
+            phase.uploaded_at = null;
+        }
+
+        // Parse and update milestones
         if (updates.milestones) {
-            phase.milestones = Array.isArray(updates.milestones) ? updates.milestones : [];
+            try {
+                phase.milestones = typeof updates.milestones === 'string' ? JSON.parse(updates.milestones) : updates.milestones;
+            } catch (e) {
+                console.error('Error parsing milestones in update:', e);
+            }
         }
 
         await roadmap.save();
-        console.log('[updatePhase] Phase updated successfully');
         res.status(200).json(roadmap);
     } catch (error) {
-        console.error('[updatePhase] Error updating phase:', error.message, error.stack);
-        res.status(500).json({ 
-            message: 'Server error updating phase',
-            error: error.message
-        });
+        console.error('[updatePhase] Error:', error);
+        res.status(500).json({ message: 'Server error updating phase', error: error.message });
     }
 };
 
@@ -237,7 +259,7 @@ exports.deletePhase = async (req, res) => {
         res.status(200).json(roadmap);
     } catch (error) {
         console.error('[deletePhase] Error deleting phase:', error.message, error.stack);
-        res.status(500).json({ 
+        res.status(500).json({
             message: 'Server error deleting phase',
             error: error.message
         });

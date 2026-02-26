@@ -23,6 +23,7 @@ const staffPortalRoutes = require('./routes/staffPortal.routes');
 const clientPortalRoutes = require('./routes/clientPortal.routes');
 const projectCommentRoutes = require('./routes/projectComment.routes');
 const forgotPasswordRoutes = require('./routes/forgotPassword.routes');
+const momRoutes = require('./routes/mom.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -43,6 +44,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -75,6 +77,7 @@ app.use('/auth/forgot', forgotPasswordRoutes);
 app.use('/admin', adminRoutes);
 app.use('/staff', staffPortalRoutes);
 app.use('/client', clientPortalRoutes);
+app.use('/mom', momRoutes);
 app.use('/', projectCommentRoutes);
 
 app.get('/', (req, res) => {

@@ -40,6 +40,22 @@ const phaseSchema = new mongoose.Schema({
         max: 100
     },
     milestones: [milestoneSchema],
+    document_link: {
+        type: String,
+        trim: true,
+        default: ''
+    },
+    document_file_url: {
+        type: String,
+        default: ''
+    },
+    document_file_name: {
+        type: String,
+        default: ''
+    },
+    uploaded_at: {
+        type: Date
+    },
     latestComment: {
         type: String,
         trim: true,

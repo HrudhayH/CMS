@@ -398,11 +398,23 @@ function ClientDashboard() {
                     <p className="banner-description">
                         Track your ongoing projects, view real-time updates from our team, and manage your professional requests all in one place.
                     </p>
-                    <button className="banner-action" onClick={() => router.push('/client/projects')}>
-                        Explore Projects
-                        <ArrowRightIcon />
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button className="banner-action" onClick={() => router.push('/client/projects')}>
+                            Explore Projects
+                            <ArrowRightIcon />
+                        </button>
+                        <button
+                            className="banner-action"
+                            style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' }}
+                            onClick={() => router.push('/client/mom')}
+                        >
+                            View Minutes
+                        </button>
+                    </div>
                 </div>
+                {/* Decorative Elements */}
+                <div style={{ position: 'absolute', top: '-10%', right: '-5%', width: '300px', height: '300px', background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)', borderRadius: '50%' }}></div>
+                <div style={{ position: 'absolute', bottom: '-20%', left: '10%', width: '200px', height: '200px', background: 'radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%)', borderRadius: '50%' }}></div>
             </div>
 
             {loading ? (
