@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { adminLogin } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import styles from '../../styles/admin-login.module.css';
+import Link from 'next/link';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -82,6 +83,10 @@ export default function AdminLogin() {
         <button type="submit" className={styles.loginButton} disabled={loading}>
           {loading ? 'Logging in...' : 'Login'}
         </button>
+
+        <Link href="/forgot-password?role=admin" className={styles.forgotLink} style={{ display: 'block', textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#2563eb', textDecoration: 'none' }}>
+          Forgot Password?
+        </Link>
       </form>
     </div>
   );

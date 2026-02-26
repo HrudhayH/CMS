@@ -22,6 +22,7 @@ const adminRoutes = require('./routes/admin.routes');
 const staffPortalRoutes = require('./routes/staffPortal.routes');
 const clientPortalRoutes = require('./routes/clientPortal.routes');
 const projectCommentRoutes = require('./routes/projectComment.routes');
+const forgotPasswordRoutes = require('./routes/forgotPassword.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -70,6 +71,7 @@ connectDB();
 
 // Routes
 app.use('/auth', authRoutes);
+app.use('/auth/forgot', forgotPasswordRoutes);
 app.use('/admin', adminRoutes);
 app.use('/staff', staffPortalRoutes);
 app.use('/client', clientPortalRoutes);

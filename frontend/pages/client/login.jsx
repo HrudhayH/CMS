@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import { clientLogin } from '../../services/api';
 import { useClientAuth } from '../../hooks/useClientAuth';
+import Link from 'next/link';
 
 export default function ClientLogin() {
     const [email, setEmail] = useState('');
@@ -171,6 +172,17 @@ export default function ClientLogin() {
                         {loading ? 'Signing in...' : 'Login'}
                     </button>
                 </form>
+
+                <Link href="/forgot-password?role=client" style={{
+                    display: 'block',
+                    textAlign: 'center',
+                    marginTop: '16px',
+                    fontSize: '14px',
+                    color: '#667eea',
+                    textDecoration: 'none'
+                }}>
+                    Forgot Password?
+                </Link>
 
                 <p style={{
                     textAlign: 'center',
