@@ -9,6 +9,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const roleMiddleware = require('../middlewares/roleMiddleware');
 const {
   getStaffProfile,
+  updateStaffProfile,
   getStaffDashboardStats,
   getStaffRecentProjects,
   getStaffProjects,
@@ -32,8 +33,9 @@ const {
 router.use(authMiddleware);
 router.use(roleMiddleware(['staff']));
 
-// Profile endpoint
+// Profile endpoints
 router.get('/profile', getStaffProfile);
+router.put('/profile', updateStaffProfile);
 
 // Dashboard endpoints
 router.get('/dashboard/stats', getStaffDashboardStats);

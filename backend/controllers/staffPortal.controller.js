@@ -389,8 +389,50 @@ const updateDeploymentLinks = async (req, res) => {
   }
 };
 
+/**
+ * Update staff profile (profile picture).
+ * PUT /staff/profile
+ */
+const updateStaffProfile = async (req, res) => {
+  try {
+    const staffId = req.user.id;
+    const { profilePicture } = req.body;
+
+    if (profilePicture && profilePicture.length > 2 * 1024 * 1024) {
+      return res.status(400).json({
+        success: false,
+        message: 'Profile picture is too large. Maximum size is 2MB.'
+      });
+    }
+
+    const updateData = {};
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+
+    const staff = await Staff.findByIdAndUpdate(
+      staffId,
+      updateData,
+      { new: true, runValidators: true }
+    ).lean();
+
+    if (!staff) {
+      return res.status(404).json({ success: false, message: 'Staff member not found.' });
+    }
+
+    delete staff.password;
+
+    res.json({
+      success: true,
+      message: 'Profile updated successfully.',
+      data: staff
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
 module.exports = {
   getStaffProfile,
+  updateStaffProfile,
   getStaffDashboardStats,
   getStaffRecentProjects,
   getStaffProjects,
