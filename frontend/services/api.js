@@ -343,6 +343,13 @@ export async function getStaffProfile() {
   return fetchWithStaffAuth('/staff/profile');
 }
 
+export async function updateStaffProfile(data) {
+  return fetchWithStaffAuth('/staff/profile', {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function addStaffProjectUpdate(projectId, updateData) {
   return fetchWithStaffAuth(`/staff/projects/${projectId}/update`, {
     method: 'POST',

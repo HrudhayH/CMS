@@ -579,7 +579,7 @@ export default function ClientProfile() {
                                     <div className="info-icon"><IdIcon /></div>
                                     <div>
                                         <div className="info-label">Client ID</div>
-                                        <div className="info-value">{formatId(profile.client._id)}</div>
+                                        <div className="info-value">{profile.client.clientCode || formatId(profile.client._id)}</div>
                                     </div>
                                 </div>
                                 <div className="info-item">
