@@ -178,6 +178,42 @@ export async function clientLogin(email, password) {
 }
 
 // ============================================
+// Forgot Password APIs
+// ============================================
+export async function requestForgotOtp(email, role) {
+  const response = await fetch(`${API_URL}/auth/forgot/request-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, role }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Failed to send OTP');
+  return data;
+}
+
+export async function verifyForgotOtp(email, code, role) {
+  const response = await fetch(`${API_URL}/auth/forgot/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, code, role }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'OTP verification failed');
+  return data;
+}
+
+export async function resetForgotPassword(email, newPassword, role) {
+  const response = await fetch(`${API_URL}/auth/forgot/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, newPassword, role }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Password reset failed');
+  return data;
+}
+
+// ============================================
 // Dashboard APIs
 // ============================================
 export async function getDashboardStats() {
