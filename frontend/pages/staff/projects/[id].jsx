@@ -1580,6 +1580,37 @@ const handleSaveLinks = async () => {
                                         </div>
                                     </div>
 
+                                    {/* Reference Link Card */}
+                                    <div className="info-card full-width-card">
+                                        <div className="card-header-custom">
+                                            <div className="card-icon">
+                                                <ExternalLinkIcon />
+                                            </div>
+                                            <h3 className="card-title-custom">Reference Link</h3>
+                                        </div>
+                                        <div className="info-row">
+                                            <div className="info-icon">
+                                                <LinkIcon />
+                                            </div>
+                                            <div className="info-content">
+                                                <div className="info-label">Reference (Figma, Docs, etc.)</div>
+                                                {project.referenceLink ? (
+                                                    <a
+                                                        href={project.referenceLink}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="link-value"
+                                                    >
+                                                        {project.referenceLink}
+                                                        <ExternalLinkIcon />
+                                                    </a>
+                                                ) : (
+                                                    <div className="info-value link-value-empty">No reference link added</div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Deployment Links Card - NEW */}
                                     <div className="info-card full-width-card">
                                         <div className="card-header-with-action">

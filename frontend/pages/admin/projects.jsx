@@ -397,6 +397,8 @@ export default function Projects() {
       techStack: [],
       referenceLink: ''
     });
+    setTechInput('');
+    setShowTechSuggestions(false);
     setIsModalOpen(true);
   };
 
@@ -413,6 +415,8 @@ export default function Projects() {
       techStack: project.techStack || [],
       referenceLink: project.referenceLink || ''
     });
+    setTechInput('');
+    setShowTechSuggestions(false);
     setIsModalOpen(true);
   };
 
@@ -473,6 +477,7 @@ export default function Projects() {
   const handleTechInputKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
+      e.stopPropagation();
       addTechTag(techInput);
     } else if (e.key === 'Backspace' && !techInput && formData.techStack.length > 0) {
       removeTechTag(formData.techStack.length - 1);
@@ -489,12 +494,23 @@ export default function Projects() {
     setFormLoading(true);
     setError('');
 
+    // Commit any pending tech stack input before submit
+    let finalFormData = { ...formData };
+    if (techInput.trim()) {
+      const pending = techInput.trim();
+      const alreadyExists = finalFormData.techStack.some(t => t.toLowerCase() === pending.toLowerCase());
+      if (!alreadyExists) {
+        finalFormData = { ...finalFormData, techStack: [...finalFormData.techStack, pending] };
+      }
+      setTechInput('');
+    }
+
     try {
       if (editingProject) {
-        await updateProject(editingProject._id, formData);
+        await updateProject(editingProject._id, finalFormData);
         setSuccess('Project updated successfully');
       } else {
-        await createProject(formData);
+        await createProject(finalFormData);
         setSuccess('Project created successfully');
       }
       setIsModalOpen(false);

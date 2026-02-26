@@ -237,6 +237,33 @@ export default function StaffProjects() {
             ),
         },
         {
+            key: 'techStack',
+            title: 'Tech Stack',
+            render: (value) => (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {value && value.length > 0 ? (
+                        value.map((tech, idx) => (
+                            <span key={idx} style={{
+                                display: 'inline-block',
+                                padding: '2px 8px',
+                                fontSize: '11px',
+                                fontWeight: '600',
+                                background: '#f3f4f6',
+                                color: '#4b5563',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '4px',
+                                whiteSpace: 'nowrap'
+                            }}>
+                                {tech}
+                            </span>
+                        ))
+                    ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '12px' }}>—</span>
+                    )}
+                </div>
+            ),
+        },
+        {
             key: 'dates',
             title: 'Timeline',
             render: (_, row) => (
