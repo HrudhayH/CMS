@@ -53,6 +53,15 @@ const phaseSchema = new mongoose.Schema({
         type: String,
         default: ''
     },
+    document_type: {
+        type: String,
+        enum: ['file', 'link', 'none', ''],
+        default: ''
+    },
+    document_value: {
+        type: String, // Can be Supabase path or external link
+        default: ''
+    },
     uploaded_at: {
         type: Date
     },

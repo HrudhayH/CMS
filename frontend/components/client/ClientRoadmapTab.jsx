@@ -596,7 +596,7 @@ export default function ClientRoadmapTab({ projectId }) {
 
                                         {phase.document_file_url && (
                                             <a
-                                                href={`${API_URL}${phase.document_file_url}`}
+                                                href={phase.document_file_url.startsWith('http') ? phase.document_file_url : `${API_URL}${phase.document_file_url}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={{
@@ -616,7 +616,7 @@ export default function ClientRoadmapTab({ projectId }) {
                                                 onMouseOver={(e) => { e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = '#f0fdf4'; }}
                                                 onMouseOut={(e) => { e.currentTarget.style.borderColor = '#d1fae5'; e.currentTarget.style.background = '#ecfdf5'; }}
                                             >
-                                                📄 {phase.document_file_name || 'Download PDF'}
+                                                📄 {phase.document_file_name || 'Download Document'}
                                             </a>
                                         )}
                                     </div>

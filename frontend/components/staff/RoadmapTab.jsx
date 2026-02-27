@@ -1290,7 +1290,7 @@ export default function RoadmapTab({ projectId }) {
                             </div>
 
                             <div className="form-group" style={{ marginBottom: 0 }}>
-                                <label className="form-label" style={{ fontWeight: '500', fontSize: '13px' }}>Upload PDF (Max 5MB)</label>
+                                <label className="form-label" style={{ fontWeight: '500', fontSize: '13px' }}>Upload Document (Max 10MB)</label>
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                     {editingPhase?.document_file_name && !editForm.remove_file && !editForm.file ? (
                                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
@@ -1309,12 +1309,12 @@ export default function RoadmapTab({ projectId }) {
                                         <div style={{ position: 'relative' }}>
                                             <input
                                                 type="file"
-                                                accept=".pdf"
+                                                accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
                                                 style={{ fontSize: '12px', width: '100%' }}
                                                 onChange={(e) => {
                                                     const file = e.target.files[0];
-                                                    if (file && file.size > 5 * 1024 * 1024) {
-                                                        alert('File size exceeds 5MB limit');
+                                                    if (file && file.size > 10 * 1024 * 1024) {
+                                                        alert('File size exceeds 10MB limit');
                                                         e.target.value = null;
                                                         return;
                                                     }
