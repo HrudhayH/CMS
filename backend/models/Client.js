@@ -48,6 +48,14 @@ const clientSchema = new mongoose.Schema({
     type: String,
     enum: ['Active', 'Paused', 'Completed'],
     default: 'Active'
+  },
+  profileImageUrl: {
+    type: String,
+    default: null
+  },
+  profileImagePath: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

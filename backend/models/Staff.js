@@ -55,6 +55,14 @@ const staffSchema = new mongoose.Schema(
     profilePicture: {
       type: String,
       default: ''
+    },
+    profileImageUrl: {
+      type: String,
+      default: null
+    },
+    profileImagePath: {
+      type: String,
+      default: null
     }
   },
   {

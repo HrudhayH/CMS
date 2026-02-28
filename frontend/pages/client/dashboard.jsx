@@ -154,6 +154,7 @@ function ClientDashboard() {
                     font-size: 24px;
                     font-weight: 700;
                     margin-bottom: 12px;
+                    color: white;
                 }
 
                 .banner-description {
@@ -161,6 +162,7 @@ function ClientDashboard() {
                     opacity: 0.8;
                     line-height: 1.6;
                     margin-bottom: 24px;
+                    color: white;
                 }
 
                 .banner-action {

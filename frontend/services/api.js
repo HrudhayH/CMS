@@ -646,6 +646,7 @@ export async function deleteAdminUser(id) {
 }
 
 // ============================================
+<<<<<<< HEAD
 // MOM APIs
 // ============================================
 
@@ -713,4 +714,105 @@ export async function deleteMOM(id) {
   });
 }
 
+=======
+// Profile Image APIs
+// Shared endpoint — role determined server-side via JWT
+// ============================================
+
+/**
+ * Upload profile image for an Admin user.
+ * Must NOT have an existing image (delete first).
+ */
+export async function uploadAdminProfileImage(file) {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append('profileImage', file);
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Upload failed');
+  return data;
+}
+
+/**
+ * Delete profile image for an Admin user.
+ */
+export async function deleteAdminProfileImage() {
+  const token = getToken();
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Delete failed');
+  return data;
+}
+
+/**
+ * Upload profile image for a Staff user.
+ * Must NOT have an existing image (delete first).
+ */
+export async function uploadStaffProfileImage(file) {
+  const token = getStaffToken();
+  const formData = new FormData();
+  formData.append('profileImage', file);
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Upload failed');
+  return data;
+}
+
+/**
+ * Delete profile image for a Staff user.
+ */
+export async function deleteStaffProfileImage() {
+  const token = getStaffToken();
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Delete failed');
+  return data;
+}
+
+/**
+ * Upload profile image for a Client user.
+ * Must NOT have an existing image (delete first).
+ */
+export async function uploadClientProfileImage(file) {
+  const token = getClientToken();
+  const formData = new FormData();
+  formData.append('profileImage', file);
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Upload failed');
+  return data;
+}
+
+/**
+ * Delete profile image for a Client user.
+ */
+export async function deleteClientProfileImage() {
+  const token = getClientToken();
+  const response = await fetch(`${API_URL}/api/users/profile-image`, {
+    method: 'DELETE',
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.message || 'Delete failed');
+  return data;
+}
+>>>>>>> fc7dcdb58905a3c9299f517e6bdf833ed010e997
 
