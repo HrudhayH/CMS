@@ -26,6 +26,14 @@ const adminSchema = new mongoose.Schema({
   permissions: {
     type: [String],
     default: []
+  },
+  profileImageUrl: {
+    type: String,
+    default: null
+  },
+  profileImagePath: {
+    type: String,
+    default: null
   }
 }, { timestamps: true });
 

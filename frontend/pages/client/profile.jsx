@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ClientLayout from '../../layouts/ClientLayout';
-import { getClientProfile } from '../../services/api';
+import { getClientProfile, uploadClientProfileImage, deleteClientProfileImage } from '../../services/api';
+import ProfileImageUpload from '../../components/ProfileImageUpload';
 
 /* ---------- Icons ---------- */
 const BuildingIcon = () => (
@@ -87,6 +88,25 @@ export default function ClientProfile() {
         fetchProfile();
     }, []);
 
+    const refreshProfile = async () => {
+        try {
+            const res = await getClientProfile();
+            setProfile(res.data);
+        } catch (err) {
+            setError(err.message || 'Failed to refresh profile');
+        }
+    };
+
+    const handleUpload = async (file) => {
+        await uploadClientProfileImage(file);
+        await refreshProfile();
+    };
+
+    const handleDelete = async () => {
+        await deleteClientProfileImage();
+        await refreshProfile();
+    };
+
     const getStatusColor = (status) => {
         const colors = {
             'Active': { bg: '#ecfdf5', color: '#065f46', border: '#10b981' },
@@ -150,7 +170,6 @@ export default function ClientProfile() {
                     gap: 28px;
                     box-shadow: 0 4px 20px rgba(139, 92, 246, 0.25);
                     position: relative;
-                    overflow: hidden;
                 }
 
                 .profile-header::before {
@@ -162,6 +181,8 @@ export default function ClientProfile() {
                     height: 400px;
                     border-radius: 50%;
                     background: rgba(255,255,255,0.05);
+                    pointer-events: none;
+                    z-index: 0;
                 }
 
                 .profile-header::after {
@@ -173,6 +194,8 @@ export default function ClientProfile() {
                     height: 300px;
                     border-radius: 50%;
                     background: rgba(255,255,255,0.03);
+                    pointer-events: none;
+                    z-index: 0;
                 }
 
                 .profile-avatar {
@@ -544,9 +567,13 @@ export default function ClientProfile() {
                 <>
                     {/* Profile Header Card */}
                     <div className="profile-header">
-                        <div className="profile-avatar">
-                            {(profile.client.company || profile.client.name)?.charAt(0).toUpperCase() || 'C'}
-                        </div>
+                        <ProfileImageUpload
+                            currentImageUrl={profile.client.profileImageUrl || null}
+                            onUpload={handleUpload}
+                            onDelete={handleDelete}
+                            accentColor="#8b5cf6"
+                            userName={profile.client.company || profile.client.name}
+                        />
                         <div className="profile-header-info">
                             <h2 className="profile-name">{profile.client.company || profile.client.name}</h2>
                             {profile.client.company && profile.client.name !== profile.client.company && (

@@ -77,12 +77,20 @@ const AdminsIcon = () => (
   </svg>
 );
 
+const ProfileIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+
 const navItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: DashboardIcon, permission: 'view_dashboard' },
   { href: '/admin/projects', label: 'Projects', icon: ProjectsIcon, permission: 'manage_projects' },
   { href: '/admin/clients', label: 'Clients', icon: ClientsIcon, permission: 'manage_clients' },
   { href: '/admin/staff', label: 'Staff', icon: StaffIcon, permission: 'manage_staff' },
   { href: '/admin/payments', label: 'Payments', icon: PaymentsIcon, permission: 'manage_payments' },
+  { href: '/admin/profile', label: 'My Profile', icon: ProfileIcon, permission: null },
 ];
 
 export default function AdminLayout({ children }) {
@@ -162,6 +170,8 @@ export default function AdminLayout({ children }) {
           <ul className={styles.navList}>
             {navItems
               .filter((item) => {
+                // Always show items with no permission requirement (e.g. My Profile)
+                if (item.permission === null) return true;
                 // Super admins see everything
                 if (user?.role === 'super_admin') return true;
                 // Regular admins see only permitted items

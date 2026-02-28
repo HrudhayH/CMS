@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import StaffLayout from '../../layouts/staffLayout';
-import { getStaffProfile, updateStaffProfile } from '../../services/api';
+import { getStaffProfile, updateStaffProfile, uploadStaffProfileImage, deleteStaffProfileImage } from '../../services/api';
+import ProfileImageUpload from '../../components/ProfileImageUpload';
 
 /* ---------- Icons ---------- */
 const UserIcon = () => (
@@ -64,20 +65,11 @@ const InfoIcon = () => (
     </svg>
 );
 
-const CameraIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-        <circle cx="12" cy="13" r="4" />
-    </svg>
-);
-
 
 export default function StaffProfile() {
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    const [uploadingPhoto, setUploadingPhoto] = useState(false);
-    const fileInputRef = useRef(null);
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -94,6 +86,25 @@ export default function StaffProfile() {
         };
         fetchProfile();
     }, []);
+
+    const refreshProfile = async () => {
+        try {
+            const res = await getStaffProfile();
+            setProfile(res.data);
+        } catch (err) {
+            setError(err.message || 'Failed to refresh profile');
+        }
+    };
+
+    const handleUpload = async (file) => {
+        await uploadStaffProfileImage(file);
+        await refreshProfile();
+    };
+
+    const handleDelete = async () => {
+        await deleteStaffProfileImage();
+        await refreshProfile();
+    };
 
     const getStatusColor = (status) => {
         const colors = {
@@ -117,52 +128,6 @@ export default function StaffProfile() {
     const formatId = (id) => {
         if (!id) return '—';
         return `STF-${id.toString().slice(-6).toUpperCase()}`;
-    };
-
-    const handlePhotoClick = () => {
-        fileInputRef.current?.click();
-    };
-
-    const handlePhotoChange = async (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        if (!file.type.startsWith('image/')) {
-            setError('Please select an image file.');
-            return;
-        }
-
-        if (file.size > 2 * 1024 * 1024) {
-            setError('Image must be smaller than 2MB.');
-            return;
-        }
-
-        try {
-            setUploadingPhoto(true);
-            setError('');
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                try {
-                    const base64 = event.target.result;
-                    await updateStaffProfile({ profilePicture: base64 });
-                    setProfile(prev => ({
-                        ...prev,
-                        staff: { ...prev.staff, profilePicture: base64 }
-                    }));
-                } catch (err) {
-                    setError(err.message || 'Failed to upload photo.');
-                } finally {
-                    setUploadingPhoto(false);
-                }
-            };
-            reader.readAsDataURL(file);
-        } catch (err) {
-            setError(err.message || 'Failed to read file.');
-            setUploadingPhoto(false);
-        }
-
-        e.target.value = '';
     };
 
     return (
@@ -203,7 +168,6 @@ export default function StaffProfile() {
                     gap: 28px;
                     box-shadow: 0 4px 20px rgba(59, 130, 246, 0.25);
                     position: relative;
-                    overflow: hidden;
                 }
 
                 .profile-header::before {
@@ -215,6 +179,8 @@ export default function StaffProfile() {
                     height: 400px;
                     border-radius: 50%;
                     background: rgba(255,255,255,0.05);
+                    pointer-events: none;
+                    z-index: 0;
                 }
 
                 .profile-header::after {
@@ -226,6 +192,8 @@ export default function StaffProfile() {
                     height: 300px;
                     border-radius: 50%;
                     background: rgba(255,255,255,0.03);
+                    pointer-events: none;
+                    z-index: 0;
                 }
 
                 .profile-avatar {
@@ -607,27 +575,13 @@ export default function StaffProfile() {
                 <>
                     {/* Profile Header Card */}
                     <div className="profile-header">
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            style={{ display: 'none' }}
+                        <ProfileImageUpload
+                            currentImageUrl={profile.staff.profileImageUrl || null}
+                            onUpload={handleUpload}
+                            onDelete={handleDelete}
+                            accentColor="#3b82f6"
+                            userName={profile.staff.name}
                         />
-                        <div className="profile-avatar" onClick={handlePhotoClick} title="Click to change photo">
-                            {profile.staff.profilePicture ? (
-                                <img src={profile.staff.profilePicture} alt={profile.staff.name} />
-                            ) : (
-                                profile.staff.name?.charAt(0).toUpperCase() || 'S'
-                            )}
-                            <div className="photo-overlay">
-                                {uploadingPhoto ? (
-                                    <div className="loading-spinner" style={{ width: 20, height: 20 }}></div>
-                                ) : (
-                                    <><CameraIcon /><span>Change</span></>
-                                )}
-                            </div>
-                        </div>
                         <div className="profile-header-info">
                             <h2 className="profile-name">{profile.staff.name}</h2>
                             <div className="profile-header-meta">

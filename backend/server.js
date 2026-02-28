@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 
 // Validate required environment variables
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_BUCKET'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`❌ Missing required environment variable: ${envVar}`);
@@ -23,6 +23,7 @@ const staffPortalRoutes = require('./routes/staffPortal.routes');
 const clientPortalRoutes = require('./routes/clientPortal.routes');
 const projectCommentRoutes = require('./routes/projectComment.routes');
 const forgotPasswordRoutes = require('./routes/forgotPassword.routes');
+const profileImageRoutes = require('./routes/profileImage.routes');
 
 const app = express();
 const server = http.createServer(app);
@@ -76,6 +77,7 @@ app.use('/admin', adminRoutes);
 app.use('/staff', staffPortalRoutes);
 app.use('/client', clientPortalRoutes);
 app.use('/', projectCommentRoutes);
+app.use('/api/users/profile-image', profileImageRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: 'CMS API is running.' });
