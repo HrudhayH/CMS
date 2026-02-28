@@ -646,7 +646,6 @@ export async function deleteAdminUser(id) {
 }
 
 // ============================================
-<<<<<<< HEAD
 // MOM APIs
 // ============================================
 
@@ -714,7 +713,6 @@ export async function deleteMOM(id) {
   });
 }
 
-=======
 // Profile Image APIs
 // Shared endpoint — role determined server-side via JWT
 // ============================================
@@ -814,5 +812,4 @@ export async function deleteClientProfileImage() {
   if (!response.ok) throw new Error(data.message || 'Delete failed');
   return data;
 }
->>>>>>> fc7dcdb58905a3c9299f517e6bdf833ed010e997
 

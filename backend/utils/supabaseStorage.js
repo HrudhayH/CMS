@@ -9,8 +9,9 @@ const supabase = require('../config/supabase');
  */
 const uploadToSupabase = async (fileBuffer, fileName, path) => {
     try {
+        const bucketName = process.env.SUPABASE_BUCKET || 'cms';
         const { data, error } = await supabase.storage
-            .from('documents')
+            .from(bucketName)
             .upload(path, fileBuffer, {
                 contentType: 'application/octet-stream', // Let Supabase infer if possible or set based on file
                 upsert: true
@@ -38,8 +39,9 @@ const getSignedUrl = async (path, expiresIn = 3600) => {
     try {
         if (!path) return '';
 
+        const bucketName = process.env.SUPABASE_BUCKET || 'cms';
         const { data, error } = await supabase.storage
-            .from('documents')
+            .from(bucketName)
             .createSignedUrl(path, expiresIn);
 
         if (error) {
