@@ -23,11 +23,8 @@ const staffPortalRoutes = require('./routes/staffPortal.routes');
 const clientPortalRoutes = require('./routes/clientPortal.routes');
 const projectCommentRoutes = require('./routes/projectComment.routes');
 const forgotPasswordRoutes = require('./routes/forgotPassword.routes');
-<<<<<<< HEAD
 const momRoutes = require('./routes/mom.routes');
-=======
 const profileImageRoutes = require('./routes/profileImage.routes');
->>>>>>> fc7dcdb58905a3c9299f517e6bdf833ed010e997
 
 const app = express();
 const server = http.createServer(app);
