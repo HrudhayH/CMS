@@ -5,7 +5,10 @@ let socket = null;
 export const initializeSocket = () => {
   if (socket) return socket;
 
-  const socketURL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+  if (!process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error('NEXT_PUBLIC_API_URL is not defined. Set it in your .env.local (dev) or Vercel environment variables (prod).');
+  }
+  const socketURL = process.env.NEXT_PUBLIC_API_URL;
   
   socket = io(socketURL, {
     reconnection: true,

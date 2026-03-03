@@ -3,7 +3,10 @@ import { useRouter } from 'next/router';
 import { withClientLayout } from '../../../layouts/ClientLayout';
 import { getClientProject } from '../../../services/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+if (!process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error('NEXT_PUBLIC_API_URL is not defined. Set it in your .env.local (dev) or Vercel environment variables (prod).');
+}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const getStatusStyles = (status) => {
     const styles = {

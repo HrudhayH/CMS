@@ -4,6 +4,11 @@ import { useAuth } from '../../hooks/useAuth';
 import { uploadAdminProfileImage, deleteAdminProfileImage } from '../../services/api';
 import ProfileImageUpload from '../../components/ProfileImageUpload';
 
+if (!process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error('NEXT_PUBLIC_API_URL is not defined. Set it in your .env.local (dev) or Vercel environment variables (prod).');
+}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
 export default function AdminProfile() {
     const { user } = useAuth();
     const [profileImageUrl, setProfileImageUrl] = useState(null);
@@ -20,7 +25,6 @@ export default function AdminProfile() {
                 const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
                 if (!token || !user?.id) return;
 
-                const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
                 const res = await fetch(`${API_URL}/admin/admins/${user.id}`, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -42,7 +46,6 @@ export default function AdminProfile() {
         try {
             const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : null;
             if (!token || !user?.id) return;
-            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
             const res = await fetch(`${API_URL}/admin/admins/${user.id}`, {
                 headers: { Authorization: `Bearer ${token}` },
             });
