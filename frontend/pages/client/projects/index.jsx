@@ -75,8 +75,9 @@ function ClientProjects() {
                 <div
                     style={{
                         display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-                        gap: '24px'
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 380px))',
+                        gap: '24px',
+                        justifyContent: 'flex-start'
                     }}
                 >
                     {projects.map(project => {
@@ -87,86 +88,125 @@ function ClientProjects() {
                                 key={project._id}
                                 style={{
                                     background: 'white',
-                                    borderRadius: '16px',
+                                    borderRadius: '20px',
                                     padding: '24px',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                                     display: 'flex',
                                     flexDirection: 'column',
                                     gap: '20px',
                                     border: '1px solid #f1f5f9',
-                                    transition: 'transform 0.2s',
-                                    cursor: 'default'
+                                    transition: 'all 0.3s ease',
+                                    height: '100%',
+                                    position: 'relative',
+                                    overflow: 'hidden'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-4px)';
+                                    e.currentTarget.style.boxShadow = '0 10px 25px -5px rgba(0, 0, 0, 0.05)';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)';
+                                    e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.05)';
                                 }}
                             >
+                                {/* Top Decoration */}
+                                <div style={{
+                                    position: 'absolute',
+                                    top: 0,
+                                    left: 0,
+                                    width: '100%',
+                                    height: '4px',
+                                    backgroundColor: statusStyle.text === '#4b5563' ? '#cbd5e1' :
+                                        statusStyle.text === '#92400e' ? '#fbbf24' :
+                                            statusStyle.text === '#065f46' ? '#10b981' : '#ef4444'
+                                }}></div>
+
                                 {/* Header */}
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                    <h3 style={{ fontSize: '20px', fontWeight: '700', color: '#1e293b', margin: 0 }}>
-                                        {project.title}
-                                    </h3>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ fontSize: '12px', fontWeight: '700', color: '#94a3b8', marginBottom: '4px', textTransform: 'uppercase' }}>
+                                            {project.projectCode || 'PROJECT'}
+                                        </div>
+                                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#1e293b', margin: 0, lineHeight: '1.2' }}>
+                                            {project.title}
+                                        </h3>
+                                    </div>
                                     <span
                                         style={{
-                                            padding: '6px 12px',
-                                            borderRadius: '8px',
-                                            fontSize: '12px',
+                                            padding: '4px 10px',
+                                            borderRadius: '6px',
+                                            fontSize: '11px',
                                             fontWeight: '700',
                                             background: statusStyle.bg,
                                             color: statusStyle.text,
                                             textTransform: 'uppercase',
-                                            letterSpacing: '0.025em'
+                                            marginTop: '4px'
                                         }}
                                     >
                                         {project.status}
                                     </span>
                                 </div>
 
-                                {/* Assigned Staff */}
+                                {/* Team */}
                                 <div>
-                                    <p style={{ fontSize: '13px', fontWeight: '600', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase' }}>
-                                        Assigned Team
+                                    <p style={{ fontSize: '11px', fontWeight: '700', color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                            <circle cx="9" cy="7" r="4"></circle>
+                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                        </svg>
+                                        Team Members
                                     </p>
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                                         {project.assignedStaff && project.assignedStaff.length > 0 ? (
-                                            project.assignedStaff.map((staff, i) => (
+                                            project.assignedStaff.slice(0, 3).map((staff, i) => (
                                                 <div
                                                     key={i}
                                                     style={{
-                                                        background: '#f1f5f9',
-                                                        color: '#475569',
+                                                        background: '#f8fafc',
+                                                        color: '#64748b',
                                                         padding: '4px 10px',
-                                                        borderRadius: '6px',
-                                                        fontSize: '13px',
-                                                        fontWeight: '500'
+                                                        borderRadius: '20px',
+                                                        fontSize: '12px',
+                                                        fontWeight: '600',
+                                                        border: '1px solid #f1f5f9'
                                                     }}
                                                 >
                                                     {staff.name}
                                                 </div>
                                             ))
                                         ) : (
-                                            <span style={{ color: '#94a3b8', fontSize: '13px', fontStyle: 'italic' }}>TBA</span>
+                                            <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Allocating team...</span>
+                                        )}
+                                        {project.assignedStaff && project.assignedStaff.length > 3 && (
+                                            <div style={{ fontSize: '12px', color: '#94a3b8', alignSelf: 'center', fontWeight: '600' }}>
+                                                +{project.assignedStaff.length - 3} more
+                                            </div>
                                         )}
                                     </div>
                                 </div>
 
                                 {/* Progress */}
-                                <div>
+                                <div style={{ marginTop: '4px' }}>
                                     <div
                                         style={{
                                             display: 'flex',
                                             justifyContent: 'space-between',
-                                            fontSize: '14px',
+                                            fontSize: '12px',
                                             marginBottom: '8px',
-                                            fontWeight: '600',
+                                            fontWeight: '700',
                                             color: '#64748b'
                                         }}
                                     >
-                                        <span>Project Progress</span>
+                                        <span>COMPLETION</span>
                                         <span style={{ color: '#3b82f6' }}>{project.progress || 0}%</span>
                                     </div>
                                     <div
                                         style={{
-                                            height: '10px',
+                                            height: '8px',
                                             background: '#f1f5f9',
-                                            borderRadius: '999px',
+                                            borderRadius: '10px',
                                             overflow: 'hidden'
                                         }}
                                     >
@@ -175,8 +215,8 @@ function ClientProjects() {
                                                 width: `${project.progress || 0}%`,
                                                 height: '100%',
                                                 background: 'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',
-                                                borderRadius: '999px',
-                                                transition: 'width 0.5s ease-out'
+                                                borderRadius: '10px',
+                                                transition: 'width 0.8s ease-in-out'
                                             }}
                                         />
                                     </div>
@@ -186,14 +226,14 @@ function ClientProjects() {
                                 <button
                                     onClick={() => router.push(`/client/projects/${project._id}`)}
                                     style={{
-                                        marginTop: '10px',
-                                        padding: '14px',
-                                        borderRadius: '12px',
-                                        border: 'none',
-                                        background: '#1e293b',
-                                        color: 'white',
+                                        marginTop: 'auto',
+                                        padding: '12px 16px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #e2e8f0',
+                                        background: '#fff',
+                                        color: '#1e293b',
                                         fontWeight: '700',
-                                        fontSize: '15px',
+                                        fontSize: '13px',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s',
                                         display: 'flex',
@@ -201,13 +241,18 @@ function ClientProjects() {
                                         justifyContent: 'center',
                                         gap: '8px'
                                     }}
-                                    onMouseOver={(e) => e.currentTarget.style.background = '#334155'}
-                                    onMouseOut={(e) => e.currentTarget.style.background = '#1e293b'}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = '#f8fafc';
+                                        e.currentTarget.style.borderColor = '#cbd5e1';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = '#fff';
+                                        e.currentTarget.style.borderColor = '#e2e8f0';
+                                    }}
                                 >
-                                    View Project Details
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <line x1="5" y1="12" x2="19" y2="12"></line>
-                                        <polyline points="12 5 19 12 12 19"></polyline>
+                                    View Project
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="9 18 15 12 9 6"></polyline>
                                     </svg>
                                 </button>
                             </div>

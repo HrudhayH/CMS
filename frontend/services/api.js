@@ -1,4 +1,7 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
+if (!process.env.NEXT_PUBLIC_API_URL) {
+  throw new Error('NEXT_PUBLIC_API_URL is not defined. Set it in your .env.local (dev) or Vercel environment variables (prod).');
+}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Get admin token from localStorage
 function getToken() {
@@ -22,10 +25,8 @@ function getClientToken() {
 async function fetchWithAuth(endpoint, options = {}) {
   const token = getToken();
 
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  const headers = { ...options.headers };
+  if (!(options.body instanceof FormData)) headers['Content-Type'] = 'application/json';
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -648,6 +649,73 @@ export async function deleteAdminUser(id) {
 }
 
 // ============================================
+// MOM APIs
+// ============================================
+
+// Generic fetch wrapper that picks the right token based on what's available
+async function fetchWithAnyAuth(endpoint, options = {}) {
+  const token = typeof window !== 'undefined' ?
+    localStorage.getItem('adminToken') || localStorage.getItem('staffToken') || localStorage.getItem('clientToken') : null;
+
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Request failed');
+  }
+
+  return data;
+}
+
+export async function createMOM(momData) {
+  return fetchWithAnyAuth('/mom/create', {
+    method: 'POST',
+    body: JSON.stringify(momData),
+  });
+}
+
+export async function getAllMOMs(filters = {}) {
+  const params = new URLSearchParams();
+  Object.keys(filters).forEach(key => {
+    if (filters[key]) params.append(key, filters[key]);
+  });
+  return fetchWithAnyAuth(`/mom/all?${params.toString()}`);
+}
+
+export async function getMOM(id) {
+  return fetchWithAnyAuth(`/mom/${id}`);
+}
+
+export async function getMOMsByProject(projectId) {
+  return fetchWithAnyAuth(`/mom/project/${projectId}`);
+}
+
+export async function updateMOM(id, momData) {
+  return fetchWithAnyAuth(`/mom/update/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(momData),
+  });
+}
+
+export async function deleteMOM(id) {
+  return fetchWithAnyAuth(`/mom/delete/${id}`, {
+    method: 'DELETE',
+  });
+}
+
 // Profile Image APIs
 // Shared endpoint — role determined server-side via JWT
 // ============================================

@@ -19,6 +19,7 @@ const {
   addStaffUpdateReply,
   updateDeploymentLinks
 } = require('../controllers/staffPortal.controller');
+const upload = require('../utils/upload');
 const {
   getRoadmap,
   createRoadmap,
@@ -52,8 +53,8 @@ router.post('/projects/:id/updates/:updateId/reply', addStaffUpdateReply);
 // Roadmap Endpoints
 router.get('/projects/:id/roadmap', getRoadmap);
 router.post('/projects/:id/roadmap', createRoadmap);
-router.post('/projects/:id/roadmap/phases', addPhase);
-router.put('/projects/:id/roadmap/phases/:phaseId', updatePhase);
+router.post('/projects/:id/roadmap/phases', upload.single('file'), addPhase);
+router.put('/projects/:id/roadmap/phases/:phaseId', upload.single('file'), updatePhase);
 router.delete('/projects/:id/roadmap/phases/:phaseId', deletePhase);
 router.post('/projects/:id/roadmap/phases/:phaseId/milestones', addMilestone);
 router.put('/projects/:id/roadmap/phases/:phaseId/milestones/:milestoneId', updateMilestone);

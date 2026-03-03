@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
-import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
+import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert, Button, Card, PageHeader } from '../../components';
 import {
   getProjects,
   createProject,
@@ -220,7 +220,7 @@ export default function Projects() {
         {/* Client hover popover */}
         {hoveredClient && (
           <div
-            onMouseEnter={() => {}}
+            onMouseEnter={() => { }}
             onMouseLeave={() => setHoveredClient(null)}
             style={{
               position: 'fixed',
@@ -395,7 +395,9 @@ export default function Projects() {
       assignedClients: [],
       assignedStaff: [],
       techStack: [],
-      referenceLink: ''
+      referenceLink: '',
+      developmentLink: '',
+      productionLink: ''
     });
     setTechInput('');
     setShowTechSuggestions(false);
@@ -413,7 +415,9 @@ export default function Projects() {
       assignedClients: project.assignedClients?.map(c => c._id) || [],
       assignedStaff: project.assignedStaff?.map(s => s._id) || [],
       techStack: project.techStack || [],
-      referenceLink: project.referenceLink || ''
+      referenceLink: project.referenceLink || '',
+      developmentLink: project.developmentLink || '',
+      productionLink: project.productionLink || ''
     });
     setTechInput('');
     setShowTechSuggestions(false);
@@ -739,57 +743,15 @@ export default function Projects() {
         }
       `}</style>
 
-      <div className="page-header" style={{
-        marginBottom: 'var(--spacing-6, 24px)',
-        paddingBottom: 'var(--spacing-6, 24px)',
-        borderBottom: '1px solid var(--color-border, #e5e7eb)'
-      }}>
-        <div>
-          <h1 className="page-title" style={{
-            fontSize: 'var(--font-size-2xl, 28px)',
-            fontWeight: '700',
-            marginBottom: 'var(--spacing-2, 8px)',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Projects
-          </h1>
-          <p className="page-subtitle" style={{
-            fontSize: 'var(--font-size-sm, 14px)',
-            color: 'var(--color-text-muted)'
-          }}>
-            Manage your projects and assignments
-          </p>
-        </div>
-        <div className="page-actions">
-          <button className="btn btn-primary" onClick={openAddModal} style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '12px 24px',
-            fontSize: 'var(--font-size-sm, 14px)',
-            fontWeight: '600',
-            borderRadius: 'var(--border-radius-lg, 8px)',
-            transition: 'all 0.2s ease',
-            boxShadow: '0 4px 6px rgba(99, 102, 241, 0.15)',
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            border: 'none'
-          }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 12px rgba(99, 102, 241, 0.25)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 6px rgba(99, 102, 241, 0.15)';
-            }}>
-            <PlusIcon />
+      <PageHeader
+        title="Projects"
+        subtitle="Manage your projects and assignments"
+        actions={
+          <Button onClick={openAddModal} icon={PlusIcon}>
             Add Project
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
       {/* Statistics Cards */}
 
@@ -1042,13 +1004,7 @@ export default function Projects() {
         </div>
       )}
 
-      <div style={{
-        backgroundColor: 'white',
-        borderRadius: 'var(--border-radius-lg, 10px)',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        overflow: 'hidden',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.08)'
-      }}>
+      <div className="table-responsive">
         <DataTable
           columns={columns}
           data={projects}
@@ -1130,6 +1086,31 @@ export default function Projects() {
               placeholder="e.g. Figma, Google Drive, or any external URL"
             />
             <p className="form-hint">Optional link to Figma designs, Drive docs, Notion pages, etc.</p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4, 16px)' }}>
+            <div className="form-group">
+              <label className="form-label">Development Link</label>
+              <input
+                type="url"
+                name="developmentLink"
+                className="form-input"
+                value={formData.developmentLink}
+                onChange={handleFormChange}
+                placeholder="https://dev.example.com"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Production Link</label>
+              <input
+                type="url"
+                name="productionLink"
+                className="form-input"
+                value={formData.productionLink}
+                onChange={handleFormChange}
+                placeholder="https://www.example.com"
+              />
+            </div>
           </div>
 
           <div className="form-group">

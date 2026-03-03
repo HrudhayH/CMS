@@ -8,7 +8,7 @@ const rateLimit = require('express-rate-limit');
 const connectDB = require('./config/db');
 
 // Validate required environment variables
-const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_BUCKET'];
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_BUCKET', 'FRONTEND_URL'];
 for (const envVar of requiredEnvVars) {
   if (!process.env[envVar]) {
     console.error(`❌ Missing required environment variable: ${envVar}`);
@@ -23,13 +23,14 @@ const staffPortalRoutes = require('./routes/staffPortal.routes');
 const clientPortalRoutes = require('./routes/clientPortal.routes');
 const projectCommentRoutes = require('./routes/projectComment.routes');
 const forgotPasswordRoutes = require('./routes/forgotPassword.routes');
+const momRoutes = require('./routes/mom.routes');
 const profileImageRoutes = require('./routes/profileImage.routes');
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIO(server, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST'],
     credentials: true
   }
@@ -37,13 +38,14 @@ const io = socketIO(server, {
 
 // CORS configuration
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 };
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Rate limiting
 const apiLimiter = rateLimit({
@@ -76,6 +78,7 @@ app.use('/auth/forgot', forgotPasswordRoutes);
 app.use('/admin', adminRoutes);
 app.use('/staff', staffPortalRoutes);
 app.use('/client', clientPortalRoutes);
+app.use('/mom', momRoutes);
 app.use('/', projectCommentRoutes);
 app.use('/api/users/profile-image', profileImageRoutes);
 

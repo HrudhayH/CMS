@@ -114,9 +114,10 @@ const PlusIcon = () => (
 // };
 
 // API Base URL
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-
-console.log('[RoadmapTab] API_URL:', API_URL);
+if (!process.env.NEXT_PUBLIC_API_URL) {
+    throw new Error('NEXT_PUBLIC_API_URL is not defined. Set it in your .env.local (dev) or Vercel environment variables (prod).');
+}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const getStatusColor = (status) => {
     switch (status) {
@@ -141,6 +142,8 @@ export default function RoadmapTab({ projectId }) {
         status: 'Not Started',
         progress: 0,
         milestones: [],
+        document_link: '',
+        file: null,
         comment: ''
     });
 
@@ -152,14 +155,14 @@ export default function RoadmapTab({ projectId }) {
             setLoading(true);
             const token = getAuthToken();
             console.log('[RoadmapTab] Auth token present:', !!token);
-            
+
             const url = `${API_URL}/staff/projects/${projectId}/roadmap`;
             console.log('[RoadmapTab] Full URL:', url);
-            
+
             // Add timeout to prevent hanging
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-            
+
             const res = await fetch(url, {
                 headers: {
                     'Authorization': `Bearer ${token}`
@@ -209,7 +212,7 @@ export default function RoadmapTab({ projectId }) {
         console.log('[RoadmapTab] projectId is truthy:', !!projectId);
         console.log('[RoadmapTab] loading state:', loading);
         console.log('[RoadmapTab] roadmapData state:', roadmapData);
-        
+
         if (projectId) {
             console.log('[RoadmapTab] projectId exists, calling fetchRoadmap()');
             fetchRoadmap();
@@ -235,7 +238,7 @@ export default function RoadmapTab({ projectId }) {
             const data = await res.json();
             console.log('[RoadmapTab] Roadmap created successfully:', data);
             setRoadmapData(data);
-            
+
             // 🔥 NOW OPEN THE MODAL TO ADD FIRST PHASE
             console.log('[RoadmapTab] Opening modal to add first phase');
             setEditingPhase(null);
@@ -246,6 +249,7 @@ export default function RoadmapTab({ projectId }) {
                 status: 'Not Started',
                 progress: 0,
                 milestones: [],
+                document: '',
                 comment: ''
             });
             setIsEditModalOpen(true);
@@ -267,6 +271,9 @@ export default function RoadmapTab({ projectId }) {
             status: phase.status,
             progress: phase.progress,
             milestones: [...phase.milestones],
+            document_link: phase.document_link || '',
+            file: null, // New file to upload
+            remove_file: false,
             comment: phase.latestComment || ''
         });
         setIsEditModalOpen(true);
@@ -283,6 +290,8 @@ export default function RoadmapTab({ projectId }) {
             status: 'Not Started',
             progress: 0,
             milestones: [],
+            document_link: '',
+            file: null,
             comment: ''
         });
         setIsEditModalOpen(true);
@@ -293,14 +302,16 @@ export default function RoadmapTab({ projectId }) {
         setIsEditModalOpen(false);
         setEditingPhase(null);
         setError(null);
-        setEditForm({ 
-            name: '', 
-            startDate: '', 
-            endDate: '', 
-            status: 'Not Started', 
-            progress: 0, 
-            milestones: [], 
-            comment: '' 
+        setEditForm({
+            name: '',
+            startDate: '',
+            endDate: '',
+            status: 'Not Started',
+            progress: 0,
+            milestones: [],
+            document_link: '',
+            file: null,
+            comment: ''
         });
     };
 
@@ -390,40 +401,55 @@ export default function RoadmapTab({ projectId }) {
             return;
         }
 
+        // At least one document (link or file) must be provided
+        const hasExistingFile = editingPhase?.document_file_url && !editForm.remove_file;
+        if (!editForm.document_link?.trim() && !editForm.file && !hasExistingFile) {
+            setError('At least one document (link or file) is required');
+            return;
+        }
+
         console.log('[RoadmapTab] Saving changes for phase:', editingPhase._id);
 
         try {
             setLoading(true);
             const token = getAuthToken();
-            
-            // ✅ Clean milestone data - only include valid fields
+
+            // ✅ Clean milestone data
             const cleanedMilestones = editForm.milestones
-                .filter(m => m.title && m.title.trim()) // Only keep milestones with title
+                .filter(m => m.title && m.title.trim())
                 .map(m => ({
                     title: m.title.trim(),
                     dueDate: m.dueDate || '',
                     status: m.status || 'Not Started'
                 }));
 
-            const updateData = {
-                name: editForm.name.trim(),
-                startDate: editForm.startDate,
-                endDate: editForm.endDate,
-                status: editForm.status,
-                progress: parseInt(editForm.progress) || 0,
-                milestones: cleanedMilestones,
-                latestComment: editForm.comment || ''
-            };
+            // Use FormData for file upload
+            const formData = new FormData();
+            formData.append('name', editForm.name.trim());
+            formData.append('startDate', editForm.startDate);
+            formData.append('endDate', editForm.endDate);
+            formData.append('status', editForm.status);
+            formData.append('progress', editForm.progress.toString());
+            formData.append('milestones', JSON.stringify(cleanedMilestones));
+            formData.append('document_link', editForm.document_link.trim());
+            formData.append('latestComment', editForm.comment || '');
 
-            console.log('[RoadmapTab] Sending update data:', updateData);
+            if (editForm.file) {
+                formData.append('file', editForm.file);
+            }
+            if (editForm.remove_file) {
+                formData.append('remove_file', 'true');
+            }
+
+            console.log('[RoadmapTab] Sending update formData');
 
             const res = await fetch(`${API_URL}/staff/projects/${projectId}/roadmap/phases/${editingPhase._id}`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
+                    // Browser automatically sets Content-Type to multipart/form-data with boundary
                 },
-                body: JSON.stringify(updateData)
+                body: formData
             });
 
             const responseData = await res.json();
@@ -459,12 +485,18 @@ export default function RoadmapTab({ projectId }) {
             return;
         }
 
+        // At least one document (link or file) must be provided
+        if (!editForm.document_link?.trim() && !editForm.file) {
+            setError('At least one document (link or file) is required');
+            return;
+        }
+
         console.log('[RoadmapTab] Adding new phase');
 
         try {
             setLoading(true);
             const token = getAuthToken();
-            
+
             // ✅ Clean milestone data
             const cleanedMilestones = editForm.milestones
                 .filter(m => m.title && m.title.trim())
@@ -474,25 +506,29 @@ export default function RoadmapTab({ projectId }) {
                     status: m.status || 'Not Started'
                 }));
 
-            const phaseData = {
-                name: editForm.name.trim(),
-                startDate: editForm.startDate,
-                endDate: editForm.endDate,
-                status: editForm.status,
-                progress: parseInt(editForm.progress) || 0,
-                milestones: cleanedMilestones,
-                latestComment: editForm.comment || ''
-            };
+            // Use FormData for file upload
+            const formData = new FormData();
+            formData.append('name', editForm.name.trim());
+            formData.append('startDate', editForm.startDate);
+            formData.append('endDate', editForm.endDate);
+            formData.append('status', editForm.status);
+            formData.append('progress', editForm.progress.toString());
+            formData.append('milestones', JSON.stringify(cleanedMilestones));
+            formData.append('document_link', editForm.document_link.trim());
+            formData.append('latestComment', editForm.comment || '');
 
-            console.log('[RoadmapTab] Sending phase data:', phaseData);
+            if (editForm.file) {
+                formData.append('file', editForm.file);
+            }
+
+            console.log('[RoadmapTab] Sending add phase formData');
 
             const res = await fetch(`${API_URL}/staff/projects/${projectId}/roadmap/phases`, {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
+                    'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(phaseData)
+                body: formData
             });
 
             const responseData = await res.json();
@@ -1109,8 +1145,8 @@ export default function RoadmapTab({ projectId }) {
                     })}
 
                     <div className="add-phase-container">
-                        <button 
-                            className="btn-add-phase" 
+                        <button
+                            className="btn-add-phase"
                             onClick={(e) => {
                                 console.warn('====== [CRITICAL TEST] Add Phase Button Clicked! ======');
                                 console.log('Event object:', e);
@@ -1162,7 +1198,7 @@ export default function RoadmapTab({ projectId }) {
                         <input
                             type="text"
                             name="name"
-                            className="form-select" // reusing styling
+                            className="form-input"
                             style={{ width: '100%' }}
                             placeholder="e.g. Phase 1: Planning"
                             value={editForm.name}
@@ -1176,7 +1212,7 @@ export default function RoadmapTab({ projectId }) {
                             <input
                                 type="date"
                                 name="startDate"
-                                className="form-select"
+                                className="form-input"
                                 value={editForm.startDate}
                                 onChange={handleFormChange}
                             />
@@ -1186,7 +1222,7 @@ export default function RoadmapTab({ projectId }) {
                             <input
                                 type="date"
                                 name="endDate"
-                                className="form-select"
+                                className="form-input"
                                 value={editForm.endDate}
                                 onChange={handleFormChange}
                             />
@@ -1222,6 +1258,87 @@ export default function RoadmapTab({ projectId }) {
                             value={editForm.progress}
                             onChange={handleFormChange}
                         />
+                    </div>
+
+                    {/* Documents Section */}
+                    <div style={{ marginTop: '24px', padding: '16px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+                        <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', fontWeight: '600', color: '#111827' }}>📁 Phase Documents</h4>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontWeight: '500', fontSize: '13px' }}>Document Link</label>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="url"
+                                        name="document_link"
+                                        className="form-input"
+                                        placeholder="https://example.com/document.pdf"
+                                        style={{
+                                            width: '100%',
+                                            paddingRight: editForm.document_link ? '32px' : '12px',
+                                            appearance: 'none',
+                                            backgroundImage: 'none'
+                                        }}
+                                        value={editForm.document_link}
+                                        onChange={handleFormChange}
+                                    />
+                                    {editForm.document_link && (
+                                        <a href={editForm.document_link} target="_blank" rel="noopener noreferrer" style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', color: '#3b82f6' }}>
+                                            🔗
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="form-group" style={{ marginBottom: 0 }}>
+                                <label className="form-label" style={{ fontWeight: '500', fontSize: '13px' }}>Upload Document (Max 10MB)</label>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {editingPhase?.document_file_name && !editForm.remove_file && !editForm.file ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px' }}>
+                                            <span style={{ fontSize: '12px', color: '#374151', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '150px' }}>
+                                                📄 {editingPhase.document_file_name}
+                                            </span>
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditForm(prev => ({ ...prev, remove_file: true }))}
+                                                style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px' }}
+                                            >
+                                                ✕
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ position: 'relative' }}>
+                                            <input
+                                                type="file"
+                                                accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg"
+                                                style={{ fontSize: '12px', width: '100%' }}
+                                                onChange={(e) => {
+                                                    const file = e.target.files[0];
+                                                    if (file && file.size > 10 * 1024 * 1024) {
+                                                        alert('File size exceeds 10MB limit');
+                                                        e.target.value = null;
+                                                        return;
+                                                    }
+                                                    setEditForm(prev => ({ ...prev, file, remove_file: false }));
+                                                }}
+                                            />
+                                            {editForm.file && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setEditForm(prev => ({ ...prev, file: null }))}
+                                                    style={{ position: 'absolute', right: 0, top: 0, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                        <p style={{ marginTop: '8px', marginBottom: 0, fontSize: '11px', color: '#6b7280' }}>
+                            At least one document (link or file) is required for this phase.
+                        </p>
                     </div>
 
                     <div className="form-group">

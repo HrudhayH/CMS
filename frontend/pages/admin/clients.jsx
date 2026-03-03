@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
-import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert } from '../../components';
+import {
+  DataTable,
+  Pagination,
+  StatusBadge,
+  Modal,
+  ConfirmDialog,
+  Alert,
+  Button,
+  Card,
+  PageHeader
+} from '../../components';
 import {
   getClients,
   createClient,
@@ -138,13 +148,12 @@ export default function Clients() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setFormLoading(true);
     setError('');
 
     try {
       if (editingClient) {
-        // Only send name, email, and phone for updates (no password)
         const { name, email, phone, company, gst, address } = formData;
         await updateClient(editingClient._id, { name, email, phone, company, gst, address });
         setSuccess('Client updated successfully');
@@ -157,7 +166,7 @@ export default function Clients() {
         }
       }
       setIsModalOpen(false);
-      setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' }); // Clear form including password
+      setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' });
       fetchClients(pagination.page, searchQuery, statusFilter, advancedFilters);
     } catch (err) {
       setError(err.message || 'Failed to save client');
@@ -196,12 +205,12 @@ export default function Clients() {
       title: 'Name',
       render: (value, row) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-          <span style={{ fontWeight: 'var(--font-weight-medium)' }}>{value}</span>
+          <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-gray-900)' }}>{value}</span>
           {row.clientCode && (
             <span style={{
-              display: 'inline-block', fontSize: '11px', fontWeight: '600',
-              color: '#065f46', backgroundColor: '#d1fae5', padding: '1px 8px',
-              borderRadius: '9999px', border: '1px solid #a7f3d0', width: 'fit-content'
+              display: 'inline-block', fontSize: '11px', fontWeight: '700',
+              color: 'var(--color-success-700)', backgroundColor: 'var(--color-success-100)',
+              padding: '1px 8px', borderRadius: '9999px', width: 'fit-content'
             }}>{row.clientCode}</span>
           )}
         </div>
@@ -211,25 +220,25 @@ export default function Clients() {
       key: 'email',
       title: 'Email',
       render: (value) => (
-        <span className="text-muted">{value}</span>
+        <span style={{ color: 'var(--color-gray-500)' }}>{value}</span>
       )
     },
     {
       key: 'projects',
       title: 'Projects',
       render: (_, row) => (
-        <div className="flex flex-col gap-1">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
           {row.projects && row.projects.length > 0 ? (
             <>
-              <span className="font-medium text-blue-600">
+              <span style={{ fontWeight: 'var(--font-weight-medium)', color: 'var(--color-primary-600)' }}>
                 {row.projects.length} Project{row.projects.length !== 1 ? 's' : ''}
               </span>
-              <span className="text-xs text-gray-500 truncate max-w-[200px]">
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-gray-400)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {row.projects.map(p => p.title).join(', ')}
               </span>
             </>
           ) : (
-            <span className="text-gray-400 text-sm">No projects</span>
+            <span style={{ color: 'var(--color-gray-300)', fontSize: 'var(--font-size-sm)' }}>No projects</span>
           )}
         </div>
       )
@@ -242,7 +251,7 @@ export default function Clients() {
           className="form-select"
           value={value}
           onChange={(e) => handleStatusChange(row._id, e.target.value)}
-          style={{ minWidth: '110px', padding: '4px 8px', fontSize: 'var(--font-size-xs)' }}
+          style={{ minWidth: '120px', padding: '4px 10px', fontSize: 'var(--font-size-xs)', height: '32px' }}
         >
           {CLIENT_STATUSES.map(status => (
             <option key={status} value={status}>{status}</option>
@@ -253,7 +262,7 @@ export default function Clients() {
     {
       key: 'createdAt',
       title: 'Created',
-      render: (value) => formatDate(value)
+      render: (value) => <span style={{ color: 'var(--color-gray-500)' }}>{formatDate(value)}</span>
     },
     {
       key: 'actions',
@@ -261,8 +270,9 @@ export default function Clients() {
       align: 'right',
       render: (_, row) => (
         <div className="table-actions" style={{ justifyContent: 'flex-end' }}>
-          <button
-            className="btn btn-ghost btn-icon-sm"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => router.push(`/admin/clients/${row._id}`)}
             title="View Details"
           >
@@ -270,76 +280,55 @@ export default function Clients() {
               <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
-          </button>
-          <button
-            className="btn btn-ghost btn-icon-sm"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => openEditModal(row)}
             title="Edit"
           >
             <EditIcon />
-          </button>
-          <button
-            className="btn btn-ghost btn-icon-sm"
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => openDeleteDialog(row)}
             title="Delete"
             style={{ color: 'var(--color-error-600)' }}
           >
             <TrashIcon />
-          </button>
+          </Button>
         </div>
       )
     }
   ];
 
   return (
-    <div>
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Clients</h1>
-          <p className="page-subtitle">Manage your client accounts</p>
-        </div>
-        <div className="page-actions">
-          <button className="btn btn-primary" onClick={openAddModal}>
-            <PlusIcon />
+    <div className="clients-page">
+      <PageHeader
+        title="Clients"
+        subtitle="Manage your client accounts and their access"
+        actions={
+          <Button onClick={openAddModal} icon={PlusIcon}>
             Add Client
-          </button>
-        </div>
-      </div>
+          </Button>
+        }
+      />
 
-      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
-      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} style={{ marginBottom: 'var(--spacing-4)' }} />}
+      {success && <Alert type="success" message={success} onClose={() => setSuccess('')} style={{ marginBottom: 'var(--spacing-4)' }} />}
 
-      {/* Search and Filter Bar */}
-      <div style={{
-        backgroundColor: 'white',
-        padding: 'var(--spacing-4, 16px)',
-        borderRadius: 'var(--border-radius-lg, 8px)',
-        border: '1px solid var(--color-border, #e5e7eb)',
-        marginBottom: 'var(--spacing-4, 16px)',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
-      }}>
-        <div style={{
-          display: 'flex',
-          gap: 'var(--spacing-3, 12px)',
-          alignItems: 'center',
-          flexWrap: 'wrap'
-        }}>
+      <Card className="mb-6">
+        <div style={{ display: 'flex', gap: 'var(--spacing-4)', alignItems: 'center', flexWrap: 'wrap' }}>
           <div style={{ flex: '1', minWidth: '250px' }}>
             <div style={{ position: 'relative' }}>
               <input
                 type="text"
-                placeholder="Search by name, email, or phone..."
+                placeholder="Search clients..."
+                className="form-input"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px 10px 40px',
-                  fontSize: 'var(--font-size-sm, 14px)',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)',
-                  outline: 'none',
-                  transition: 'all 0.2s ease'
-                }}
+                style={{ paddingLeft: '40px' }}
               />
               <svg
                 width="18"
@@ -350,13 +339,7 @@ export default function Clients() {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: 'var(--color-text-muted)'
-                }}
+                style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--color-gray-400)' }}
               >
                 <circle cx="11" cy="11" r="8" />
                 <path d="m21 21-4.35-4.35" />
@@ -365,18 +348,10 @@ export default function Clients() {
           </div>
 
           <select
+            className="form-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '10px 12px',
-              fontSize: 'var(--font-size-sm, 14px)',
-              border: '1px solid var(--color-border, #e5e7eb)',
-              borderRadius: 'var(--border-radius-md, 6px)',
-              backgroundColor: 'white',
-              cursor: 'pointer',
-              outline: 'none',
-              minWidth: '140px'
-            }}
+            style={{ width: '160px' }}
           >
             <option value="">All Statuses</option>
             {CLIENT_STATUSES.map(status => (
@@ -384,189 +359,102 @@ export default function Clients() {
             ))}
           </select>
 
-          <button
+          <Button
+            variant={showAdvancedFilters ? 'secondary' : 'ghost'}
             onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-            style={{
-              padding: '10px 16px',
-              fontSize: 'var(--font-size-sm, 14px)',
-              border: '1px solid var(--color-border, #e5e7eb)',
-              borderRadius: 'var(--border-radius-md, 6px)',
-              backgroundColor: showAdvancedFilters ? '#f0f0ff' : 'white',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontWeight: '500',
-              color: showAdvancedFilters ? '#667eea' : 'var(--color-text-secondary)',
-              transition: 'all 0.2s ease'
-            }}
+            size="sm"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: '6px' }}>
               <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
             </svg>
             Filters
-          </button>
+          </Button>
 
           {(searchQuery || statusFilter || advancedFilters.company) && (
-            <button
-              onClick={() => { setSearchQuery(''); setStatusFilter(''); setAdvancedFilters({ company: '' }); }}
-              style={{
-                padding: '10px 16px',
-                fontSize: 'var(--font-size-sm, 14px)',
-                border: '1px solid var(--color-border, #e5e7eb)',
-                borderRadius: 'var(--border-radius-md, 6px)',
-                backgroundColor: 'white',
-                cursor: 'pointer',
-                fontWeight: '500',
-                color: 'var(--color-text-secondary)'
-              }}
-            >
+            <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setStatusFilter(''); setAdvancedFilters({ company: '' }); }}>
               Clear
-            </button>
+            </Button>
           )}
         </div>
 
-        {/* Advanced Filters Panel */}
         {showAdvancedFilters && (
-          <div style={{
-            display: 'flex',
-            gap: 'var(--spacing-3, 12px)',
-            marginTop: 'var(--spacing-3, 12px)',
-            paddingTop: 'var(--spacing-3, 12px)',
-            borderTop: '1px solid var(--color-border, #e5e7eb)',
-            alignItems: 'flex-end',
-            flexWrap: 'wrap'
-          }}>
-            <div style={{ flex: '1', minWidth: '200px' }}>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>Company</label>
+          <div style={{ marginTop: 'var(--spacing-4)', paddingTop: 'var(--spacing-4)', borderTop: '1px solid var(--color-gray-100)', display: 'flex', gap: 'var(--spacing-4)', alignItems: 'flex-end' }}>
+            <div style={{ flex: '1' }}>
+              <label className="form-label">Company</label>
               <input
                 type="text"
-                placeholder="Filter by company name"
+                className="form-input"
+                placeholder="Filter by company"
                 value={advancedFilters.company}
                 onChange={(e) => setAdvancedFilters(prev => ({ ...prev, company: e.target.value }))}
-                style={{
-                  width: '100%', padding: '8px 12px', fontSize: '13px',
-                  border: '1px solid var(--color-border, #e5e7eb)',
-                  borderRadius: 'var(--border-radius-md, 6px)', outline: 'none'
-                }}
               />
             </div>
-            <button
-              onClick={() => setAdvancedFilters({ company: '' })}
-              style={{
-                padding: '8px 14px', fontSize: '13px',
-                border: '1px solid #fecaca', borderRadius: 'var(--border-radius-md, 6px)',
-                backgroundColor: '#fef2f2', color: '#dc2626',
-                cursor: 'pointer', fontWeight: '500', whiteSpace: 'nowrap'
-              }}
-            >
-              Clear Filters
-            </button>
+            <Button variant="secondary" size="sm" onClick={() => setAdvancedFilters({ company: '' })}>
+              Reset
+            </Button>
           </div>
         )}
+      </Card>
 
-        {/* Active Filters */}
-        {(searchQuery || statusFilter || advancedFilters.company) && (
-          <div style={{
-            display: 'flex', gap: '8px', marginTop: 'var(--spacing-3, 12px)', flexWrap: 'wrap'
-          }}>
-            {searchQuery && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
-                color: '#92400e', backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a', borderRadius: '9999px'
-              }}>
-                Search: &quot;{searchQuery}&quot;
-              </span>
-            )}
-            {statusFilter && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
-                color: '#92400e', backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a', borderRadius: '9999px'
-              }}>
-                Status: {statusFilter}
-              </span>
-            )}
-            {advancedFilters.company && (
-              <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '6px',
-                padding: '4px 10px', fontSize: '12px', fontWeight: '500',
-                color: '#92400e', backgroundColor: '#fef3c7',
-                border: '1px solid #fde68a', borderRadius: '9999px'
-              }}>
-                Company: {advancedFilters.company}
-              </span>
-            )}
-          </div>
-        )}
+      <div className="table-responsive">
+        <DataTable
+          columns={columns}
+          data={clients}
+          loading={loading}
+          emptyMessage="No clients found"
+          emptyDescription="Try adjusting your search or filters."
+        />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={clients}
-        loading={loading}
-        emptyMessage="No clients found"
-        emptyDescription="Get started by adding your first client."
-      />
-
-      <Pagination
-        currentPage={pagination.page}
-        totalPages={pagination.totalPages}
-        totalItems={pagination.total}
-        itemsPerPage={ITEMS_PER_PAGE}
-        onPageChange={handlePageChange}
-      />
+      <div style={{ marginTop: 'var(--spacing-5)' }}>
+        <Pagination
+          currentPage={pagination.page}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.total}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={handlePageChange}
+        />
+      </div>
 
       {/* Add/Edit Modal */}
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editingClient ? 'Edit Client' : 'Add Client'}
+        title={editingClient ? 'Edit Client' : 'Add New Client'}
         footer={
-          <>
-            <button
-              className="btn btn-secondary"
-              onClick={() => setIsModalOpen(false)}
-              disabled={formLoading}
-            >
+          <div style={{ display: 'flex', gap: 'var(--spacing-3)', justifyContent: 'flex-end', width: '100%' }}>
+            <Button variant="secondary" onClick={() => setIsModalOpen(false)} disabled={formLoading}>
               Cancel
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleSubmit}
-              disabled={formLoading}
-            >
-              {formLoading ? 'Saving...' : (editingClient ? 'Update' : 'Create')}
-            </button>
-          </>
+            </Button>
+            <Button onClick={handleSubmit} disabled={formLoading}>
+              {formLoading ? 'Saving...' : (editingClient ? 'Update Client' : 'Create Client')}
+            </Button>
+          </div>
         }
       >
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label className="form-label form-label-required">Name</label>
+            <label className="form-label form-label-required">Full Name</label>
             <input
               type="text"
               name="name"
               className="form-input"
               value={formData.name}
               onChange={handleFormChange}
-              placeholder="Enter client name"
+              placeholder="e.g. John Doe"
               required
             />
           </div>
 
           <div className="form-group">
-            <label className="form-label form-label-required">Email</label>
+            <label className="form-label form-label-required">Email Address</label>
             <input
               type="email"
               name="email"
               className="form-input"
               value={formData.email}
               onChange={handleFormChange}
-              placeholder="Enter client email"
+              placeholder="e.g. john@example.com"
               required
             />
           </div>
@@ -579,21 +467,20 @@ export default function Clients() {
               className="form-input"
               value={formData.phone}
               onChange={handleFormChange}
-              placeholder="Enter client phone number"
-              maxLength={20}
+              placeholder="+1 234 567 890"
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--spacing-4)' }}>
             <div className="form-group">
-              <label className="form-label">Company</label>
+              <label className="form-label">Company Name</label>
               <input
                 type="text"
                 name="company"
                 className="form-input"
                 value={formData.company}
                 onChange={handleFormChange}
-                placeholder="Company Name"
+                placeholder="Business Name"
               />
             </div>
             <div className="form-group">
@@ -604,7 +491,7 @@ export default function Clients() {
                 className="form-input"
                 value={formData.gst}
                 onChange={handleFormChange}
-                placeholder="GST Number"
+                placeholder="Tax ID"
               />
             </div>
           </div>
@@ -613,78 +500,63 @@ export default function Clients() {
             <label className="form-label">Address</label>
             <textarea
               name="address"
-              className="form-input"
+              className="form-textarea"
               value={formData.address}
               onChange={handleFormChange}
-              placeholder="Full Address"
+              placeholder="Company Address"
               rows="3"
             />
           </div>
 
-          {/* Password field - only shown when creating new client */}
           {!editingClient && (
             <div className="form-group">
               <label className="form-label">Password</label>
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: 'var(--spacing-2)' }}>
                 <input
                   type="text"
                   name="password"
                   className="form-input"
                   value={formData.password}
                   onChange={handleFormChange}
-                  placeholder="Leave blank to auto-generate"
+                  placeholder="Auto-generated if blank"
                   style={{ flex: 1 }}
                 />
-                <button
-                  type="button"
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={() => {
                     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789@#$%&*!?';
                     let pwd = '';
                     for (let i = 0; i < 12; i++) pwd += chars.charAt(Math.floor(Math.random() * chars.length));
                     setFormData(prev => ({ ...prev, password: pwd }));
                   }}
-                  style={{
-                    padding: '8px 14px', borderRadius: '6px', border: '1px solid var(--color-border)',
-                    background: '#f9fafb', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                    fontSize: '12px', fontWeight: '600', color: '#6b7280', whiteSpace: 'nowrap'
-                  }}
-                  title="Generate random password"
+                  title="Generate password"
                 >
-                  <DiceIcon /> Generate
-                </button>
+                  <DiceIcon />
+                </Button>
                 {formData.password && (
-                  <button
-                    type="button"
+                  <Button
+                    variant={copiedPassword ? 'success' : 'secondary'}
+                    size="sm"
                     onClick={() => copyToClipboard(formData.password)}
-                    style={{
-                      padding: '8px 14px', borderRadius: '6px',
-                      border: `1px solid ${copiedPassword ? '#a7f3d0' : 'var(--color-border)'}`,
-                      background: copiedPassword ? '#d1fae5' : '#f9fafb',
-                      cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
-                      fontSize: '12px', fontWeight: '600',
-                      color: copiedPassword ? '#065f46' : '#6b7280', whiteSpace: 'nowrap',
-                      transition: 'all 0.2s ease'
-                    }}
-                    title="Copy password"
                   >
-                    {copiedPassword ? '✓ Copied' : '📋 Copy'}
-                  </button>
+                    {copiedPassword ? '✓' : '📋'}
+                  </Button>
                 )}
               </div>
-              <p className="form-hint">Leave blank to auto-generate a secure password on the server</p>
+              <p className="form-hint">Client will receive an email with their credentials.</p>
             </div>
           )}
         </form>
       </Modal>
 
-      {/* Delete Confirmation Dialog */}
       <ConfirmDialog
         isOpen={isDeleteDialogOpen}
         onClose={() => setIsDeleteDialogOpen(false)}
         onConfirm={handleDelete}
         title="Delete Client"
-        message={`Are you sure you want to delete "${deletingClient?.name}"? This action cannot be undone.`}
-        confirmText="Delete"
+        message={`Are you sure you want to delete "${deletingClient?.name}"? All associated data will be permanently removed.`}
+        confirmText="Delete Client"
         variant="danger"
       />
     </div>

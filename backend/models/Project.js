@@ -126,7 +126,7 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       default: '',
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           if (!v) return true; // Allow empty
           return /^https?:\/\/.+/.test(v); // Basic URL validation
         },
@@ -139,7 +139,7 @@ const projectSchema = new mongoose.Schema(
       trim: true,
       default: '',
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           if (!v) return true; // Allow empty
           return /^https?:\/\/.+/.test(v); // Basic URL validation
         },
@@ -152,6 +152,24 @@ const projectSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: ''
+    },
+
+    // Project Documents
+    document_link: {
+      type: String,
+      trim: true,
+      default: ''
+    },
+    document_file_url: {
+      type: String,
+      default: ''
+    },
+    document_file_name: {
+      type: String,
+      default: ''
+    },
+    uploadedAt: {
+      type: Date
     }
   },
   {
