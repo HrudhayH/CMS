@@ -1,0 +1,735 @@
+const PaymentPlan = require('../models/PaymentPlan');
+const PaymentPhase = require('../models/PaymentPhase');
+const PaymentHistory = require('../models/PaymentHistory');
+const Project = require('../models/Project');
+
+// Create payment plan for a project
+const createPaymentPlan = async (req, res) => {
+  try {
+    const { clientId, projectId, totalAmount, paymentType, phases } = req.body;
+
+    if (!clientId || !projectId || !totalAmount || !paymentType) {
+      return res.status(400).json({ success: false, message: 'Client, project, total amount, and payment type are required.' });
+    }
+
+    // Check if plan already exists for this project
+    const existingPlan = await PaymentPlan.findOne({ project: projectId });
+    if (existingPlan) {
+      return res.status(400).json({ success: false, message: 'Payment plan already exists for this project.' });
+    }
+
+    // Verify project exists and belongs to client
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ success: false, message: 'Project not found.' });
+    }
+
+    const plan = await PaymentPlan.create({
+      client: clientId,
+      project: projectId,
+      totalAmount,
+      paymentType
+    });
+
+    // If phase-wise, create phases
+    if (paymentType === 'PHASE_WISE' && phases && phases.length > 0) {
+      const phaseDocuments = phases.map(phase => {
+        const calculatedAmount = phase.amountType === 'PERCENTAGE'
+          ? (totalAmount * phase.amountValue) / 100
+          : phase.amountValue;
+
+        return {
+          paymentPlan: plan._id,
+          phaseName: phase.phaseName,
+          amountType: phase.amountType,
+          amountValue: phase.amountValue,
+          calculatedAmount,
+          dueDate: phase.dueDate || null
+        };
+      });
+
+      await PaymentPhase.insertMany(phaseDocuments);
+    }
+
+    const populatedPlan = await PaymentPlan.findById(plan._id)
+      .populate('client', 'name email')
+      .populate('project', 'title');
+
+    res.status(201).json({ success: true, message: 'Payment plan created.', data: populatedPlan });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get all payment plans (paginated with search and filters)
+const getPaymentPlans = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const { search, paymentType, status } = req.query;
+
+    // Build match conditions
+    const matchStage = {};
+
+    // Filter by paymentType
+    if (paymentType && ['ONE_TIME', 'PHASE_WISE'].includes(paymentType)) {
+      matchStage.paymentType = paymentType;
+    }
+
+    // Filter by status
+    if (status && ['PENDING', 'PARTIAL', 'PAID'].includes(status)) {
+      matchStage.status = status;
+    }
+
+    // Use aggregation pipeline for search across populated fields
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: { path: '$client', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'project',
+          foreignField: '_id',
+          as: 'project'
+        }
+      },
+      { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } }
+    ];
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'client.name': searchRegex },
+            { 'project.title': searchRegex }
+          ]
+        }
+      });
+    }
+
+    // Add remaining amount virtual
+    pipeline.push({
+      $addFields: {
+        remainingAmount: { $subtract: ['$totalAmount', '$totalPaidAmount'] }
+      }
+    });
+
+    // Get total count
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await PaymentPlan.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination and projection
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          client: { _id: 1, name: 1, email: 1 },
+          project: { _id: 1, title: 1 },
+          totalAmount: 1,
+          totalPaidAmount: 1,
+          remainingAmount: 1,
+          paymentType: 1,
+          status: 1,
+          createdAt: 1,
+          updatedAt: 1
+        }
+      }
+    );
+
+    const plans = await PaymentPlan.aggregate(pipeline);
+
+    res.json({
+      success: true,
+      data: plans,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page < Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get payment plan by ID with phases
+const getPaymentPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const plan = await PaymentPlan.findById(id)
+      .populate('client', 'name email')
+      .populate('project', 'title')
+      .lean({ virtuals: true });
+
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    const phases = await PaymentPhase.find({ paymentPlan: id }).sort({ createdAt: 1 }).lean();
+
+    res.json({ success: true, data: { ...plan, phases } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get payments by client
+const getPaymentsByClient = async (req, res) => {
+  try {
+    const { clientId } = req.params;
+
+    const plans = await PaymentPlan.find({ client: clientId })
+      .populate('project', 'title')
+      .lean({ virtuals: true });
+
+    res.json({ success: true, data: plans });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get payment by project
+const getPaymentByProject = async (req, res) => {
+  try {
+    const { projectId } = req.params;
+
+    const plan = await PaymentPlan.findOne({ project: projectId })
+      .populate('client', 'name email')
+      .populate('project', 'title')
+      .lean({ virtuals: true });
+
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'No payment plan found for this project.' });
+    }
+
+    const phases = await PaymentPhase.find({ paymentPlan: plan._id }).sort({ createdAt: 1 }).lean();
+
+    res.json({ success: true, data: { ...plan, phases } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Mark phase as paid
+const markPhaseAsPaid = async (req, res) => {
+  try {
+    const { id, phaseId } = req.params;
+    const { paymentMode } = req.body;
+
+    if (!paymentMode) {
+      return res.status(400).json({ success: false, message: 'Payment mode is required.' });
+    }
+
+    const phase = await PaymentPhase.findOne({ _id: phaseId, paymentPlan: id });
+    if (!phase) {
+      return res.status(404).json({ success: false, message: 'Phase not found.' });
+    }
+
+    if (phase.status === 'PAID') {
+      return res.status(400).json({ success: false, message: 'Phase is already paid.' });
+    }
+
+    const plan = await PaymentPlan.findById(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    // Update phase
+    phase.status = 'PAID';
+    phase.paidDate = new Date();
+    phase.paymentMode = paymentMode;
+    await phase.save();
+
+    // Update plan totals
+    plan.totalPaidAmount += phase.calculatedAmount;
+    plan.status = plan.totalPaidAmount >= plan.totalAmount ? 'PAID' : 'PARTIAL';
+    await plan.save();
+
+    // Create history entry
+    await PaymentHistory.create({
+      client: plan.client,
+      project: plan.project,
+      paymentPlan: plan._id,
+      phaseName: phase.phaseName,
+      amount: phase.calculatedAmount,
+      paymentMode,
+      paidDate: new Date(),
+      createdBy: req.user.id
+    });
+
+    res.json({ success: true, message: 'Phase marked as paid.', data: phase });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Mark full payment (ONE_TIME)
+const markFullPayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { paymentMode } = req.body;
+
+    if (!paymentMode) {
+      return res.status(400).json({ success: false, message: 'Payment mode is required.' });
+    }
+
+    const plan = await PaymentPlan.findById(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    if (plan.status === 'PAID') {
+      return res.status(400).json({ success: false, message: 'Payment is already completed.' });
+    }
+
+    if (plan.paymentType !== 'ONE_TIME') {
+      return res.status(400).json({ success: false, message: 'Use phase payment for phase-wise plans.' });
+    }
+
+    plan.totalPaidAmount = plan.totalAmount;
+    plan.status = 'PAID';
+    await plan.save();
+
+    await PaymentHistory.create({
+      client: plan.client,
+      project: plan.project,
+      paymentPlan: plan._id,
+      phaseName: 'FULL_PAYMENT',
+      amount: plan.totalAmount,
+      paymentMode,
+      paidDate: new Date(),
+      createdBy: req.user.id
+    });
+
+    res.json({ success: true, message: 'Full payment recorded.', data: plan });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Get global payment history (paginated with search and filters)
+const getPaymentHistory = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+    const { search, paymentMode } = req.query;
+
+    // Build match conditions
+    const matchStage = {};
+
+    // Filter by paymentMode
+    if (paymentMode && ['UPI', 'BANK', 'CASH', 'CHEQUE'].includes(paymentMode)) {
+      matchStage.paymentMode = paymentMode;
+    }
+
+    // Use aggregation pipeline for search across populated fields
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: 'clients',
+          localField: 'client',
+          foreignField: '_id',
+          as: 'client'
+        }
+      },
+      { $unwind: { path: '$client', preserveNullAndEmptyArrays: true } },
+      {
+        $lookup: {
+          from: 'projects',
+          localField: 'project',
+          foreignField: '_id',
+          as: 'project'
+        }
+      },
+      { $unwind: { path: '$project', preserveNullAndEmptyArrays: true } }
+    ];
+
+    // Add search filter if provided
+    if (search && search.trim()) {
+      const searchRegex = new RegExp(search.trim(), 'i');
+      pipeline.push({
+        $match: {
+          $or: [
+            { 'client.name': searchRegex },
+            { 'project.title': searchRegex }
+          ]
+        }
+      });
+    }
+
+    // Get total count
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await PaymentHistory.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination and projection
+    pipeline.push(
+      { $sort: { createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $project: {
+          _id: 1,
+          client: { _id: 1, name: 1, email: 1 },
+          project: { _id: 1, title: 1 },
+          phaseName: 1,
+          amount: 1,
+          paymentMode: 1,
+          paidDate: 1,
+          createdAt: 1
+        }
+      }
+    );
+
+    const history = await PaymentHistory.aggregate(pipeline);
+
+    res.json({
+      success: true,
+      data: history,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: page < Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Add phases to existing plan
+const addPhases = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { phases } = req.body;
+
+    if (!phases || phases.length === 0) {
+      return res.status(400).json({ success: false, message: 'Phases are required.' });
+    }
+
+    const plan = await PaymentPlan.findById(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    if (plan.paymentType !== 'PHASE_WISE') {
+      return res.status(400).json({ success: false, message: 'Cannot add phases to one-time payment plan.' });
+    }
+
+    const phaseDocuments = phases.map(phase => {
+      const calculatedAmount = phase.amountType === 'PERCENTAGE'
+        ? (plan.totalAmount * phase.amountValue) / 100
+        : phase.amountValue;
+
+      return {
+        paymentPlan: plan._id,
+        phaseName: phase.phaseName,
+        amountType: phase.amountType,
+        amountValue: phase.amountValue,
+        calculatedAmount,
+        dueDate: phase.dueDate || null
+      };
+    });
+
+    const createdPhases = await PaymentPhase.insertMany(phaseDocuments);
+
+    res.status(201).json({ success: true, message: 'Phases added.', data: createdPhases });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Edit payment plan (totalAmount, paymentType)
+const updatePaymentPlan = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { totalAmount, paymentType } = req.body;
+
+    const plan = await PaymentPlan.findById(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    // Get existing phases
+    const phases = await PaymentPhase.find({ paymentPlan: id });
+    const paidPhases = phases.filter(p => p.status === 'PAID');
+    const hasPaidPhases = paidPhases.length > 0;
+
+    // Validate payment type change
+    if (paymentType && paymentType !== plan.paymentType) {
+      if (plan.paymentType === 'PHASE_WISE' && paymentType === 'ONE_TIME') {
+        if (hasPaidPhases) {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot switch to ONE_TIME when phases are already paid.'
+          });
+        }
+        // Delete all pending phases when switching to ONE_TIME
+        await PaymentPhase.deleteMany({ paymentPlan: id, status: 'PENDING' });
+      }
+      if (plan.paymentType === 'ONE_TIME' && paymentType === 'PHASE_WISE') {
+        if (plan.status === 'PAID') {
+          return res.status(400).json({
+            success: false,
+            message: 'Cannot switch to PHASE_WISE when payment is already completed.'
+          });
+        }
+      }
+      plan.paymentType = paymentType;
+    }
+
+    // Update total amount
+    if (totalAmount !== undefined && totalAmount !== plan.totalAmount) {
+      if (totalAmount < plan.totalPaidAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Total amount cannot be less than already paid amount (${plan.totalPaidAmount}).`
+        });
+      }
+      plan.totalAmount = totalAmount;
+
+      // Recalculate pending phases with PERCENTAGE type
+      const pendingPhases = await PaymentPhase.find({ paymentPlan: id, status: 'PENDING' });
+      for (const phase of pendingPhases) {
+        if (phase.amountType === 'PERCENTAGE') {
+          phase.calculatedAmount = (totalAmount * phase.amountValue) / 100;
+          await phase.save();
+        }
+      }
+    }
+
+    // Recalculate status
+    if (plan.totalPaidAmount >= plan.totalAmount) {
+      plan.status = 'PAID';
+    } else if (plan.totalPaidAmount > 0) {
+      plan.status = 'PARTIAL';
+    } else {
+      plan.status = 'PENDING';
+    }
+
+    await plan.save();
+
+    const updatedPlan = await PaymentPlan.findById(id)
+      .populate('client', 'name email')
+      .populate('project', 'title')
+      .lean({ virtuals: true });
+
+    const updatedPhases = await PaymentPhase.find({ paymentPlan: id }).sort({ createdAt: 1 }).lean();
+
+    res.json({ success: true, message: 'Payment plan updated.', data: { ...updatedPlan, phases: updatedPhases } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Edit phase (Admin can edit even if PAID)
+const updatePhase = async (req, res) => {
+  try {
+    const { id, phaseId } = req.params;
+    const { phaseName, amountType, amountValue, dueDate, status, paymentMode, paidDate, notes } = req.body;
+
+    const phase = await PaymentPhase.findOne({ _id: phaseId, paymentPlan: id });
+    if (!phase) {
+      return res.status(404).json({ success: false, message: 'Phase not found.' });
+    }
+
+    const plan = await PaymentPlan.findById(id);
+    if (!plan) {
+      return res.status(404).json({ success: false, message: 'Payment plan not found.' });
+    }
+
+    // Snapshot previous values for history
+    const prevAmount = phase.calculatedAmount;
+    const prevMode = phase.paymentMode;
+    const prevStatus = phase.status;
+    const wasPaid = phase.status === 'PAID';
+
+    // Track if amount changed (needed for plan recalculation)
+    let amountChanged = false;
+    let statusChanged = false;
+
+    // Update basic fields
+    if (phaseName !== undefined) phase.phaseName = phaseName;
+    if (dueDate !== undefined) phase.dueDate = dueDate || null;
+    if (notes !== undefined) phase.notes = notes;
+
+    // Update amount if changed
+    if (amountType !== undefined || amountValue !== undefined) {
+      const newAmountType = amountType !== undefined ? amountType : phase.amountType;
+      const newAmountValue = amountValue !== undefined ? amountValue : phase.amountValue;
+
+      phase.amountType = newAmountType;
+      phase.amountValue = newAmountValue;
+      phase.calculatedAmount = newAmountType === 'PERCENTAGE'
+        ? (plan.totalAmount * newAmountValue) / 100
+        : newAmountValue;
+
+      if (phase.calculatedAmount !== prevAmount) {
+        amountChanged = true;
+      }
+    }
+
+    // Update status
+    if (status !== undefined && ['PENDING', 'PAID'].includes(status)) {
+      if (status !== phase.status) {
+        statusChanged = true;
+        phase.status = status;
+        // If marking as PAID, set paidDate if not provided
+        if (status === 'PAID' && !phase.paidDate && !paidDate) {
+          phase.paidDate = new Date();
+        }
+        // If reverting to PENDING, clear paid fields
+        if (status === 'PENDING') {
+          phase.paidDate = null;
+          phase.paymentMode = null;
+        }
+      }
+    }
+
+    // Update paymentMode (only if phase is/will be PAID)
+    if (paymentMode !== undefined && phase.status === 'PAID') {
+      phase.paymentMode = paymentMode;
+    }
+
+    // Update paidDate (only if phase is/will be PAID)
+    if (paidDate !== undefined && phase.status === 'PAID') {
+      phase.paidDate = paidDate ? new Date(paidDate) : new Date();
+    }
+
+    // Validate: calculatedAmount must not be negative
+    if (phase.calculatedAmount < 0) {
+      return res.status(400).json({ success: false, message: 'Phase amount cannot be negative.' });
+    }
+
+    // Recalculate plan totals if amount changed on a PAID phase, or status changed
+    if ((amountChanged && phase.status === 'PAID') || statusChanged) {
+      // Recalculate totalPaidAmount from all phases
+      const allPhases = await PaymentPhase.find({ paymentPlan: id });
+      // Apply the current unsaved phase changes
+      let newTotalPaid = 0;
+      for (const p of allPhases) {
+        if (p._id.toString() === phaseId) {
+          // Use the updated values
+          if (phase.status === 'PAID') newTotalPaid += phase.calculatedAmount;
+        } else {
+          if (p.status === 'PAID') newTotalPaid += p.calculatedAmount;
+        }
+      }
+
+      // Validate: no overpayment beyond plan total
+      if (newTotalPaid > plan.totalAmount) {
+        return res.status(400).json({
+          success: false,
+          message: `Total paid (${newTotalPaid}) would exceed plan total (${plan.totalAmount}). Adjust amounts or plan total first.`
+        });
+      }
+
+      plan.totalPaidAmount = newTotalPaid;
+
+      // Recalculate plan status
+      if (plan.totalPaidAmount >= plan.totalAmount && plan.totalAmount > 0) {
+        plan.status = 'PAID';
+      } else if (plan.totalPaidAmount > 0) {
+        plan.status = 'PARTIAL';
+      } else {
+        plan.status = 'PENDING';
+      }
+
+      await plan.save();
+    }
+
+    // Mark edit metadata
+    phase.updatedBy = req.user.id;
+    phase.lastEditedAt = new Date();
+
+    await phase.save();
+
+    // Create EDIT history entry if meaningful change occurred
+    if (amountChanged || statusChanged || (paymentMode !== undefined && paymentMode !== prevMode)) {
+      const descParts = [];
+      if (amountChanged) descParts.push(`amount: ${prevAmount} → ${phase.calculatedAmount}`);
+      if (statusChanged) descParts.push(`status: ${prevStatus} → ${phase.status}`);
+      if (paymentMode !== undefined && paymentMode !== prevMode) descParts.push(`mode: ${prevMode || 'none'} → ${paymentMode}`);
+
+      await PaymentHistory.create({
+        client: plan.client,
+        project: plan.project,
+        paymentPlan: plan._id,
+        phaseName: phase.phaseName,
+        amount: phase.calculatedAmount,
+        paymentMode: phase.paymentMode || prevMode || 'UPI',
+        paidDate: phase.paidDate || new Date(),
+        createdBy: req.user.id,
+        type: 'EDIT',
+        description: `Phase edited by Admin: ${descParts.join(', ')}`,
+        previousAmount: amountChanged ? prevAmount : null,
+        newAmount: amountChanged ? phase.calculatedAmount : null,
+        previousMode: (paymentMode !== undefined && paymentMode !== prevMode) ? prevMode : null,
+        newMode: (paymentMode !== undefined && paymentMode !== prevMode) ? paymentMode : null
+      });
+    }
+
+    res.json({ success: true, message: 'Phase updated.', data: phase });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+// Delete phase (only if PENDING)
+const deletePhase = async (req, res) => {
+  try {
+    const { id, phaseId } = req.params;
+
+    const phase = await PaymentPhase.findOne({ _id: phaseId, paymentPlan: id });
+    if (!phase) {
+      return res.status(404).json({ success: false, message: 'Phase not found.' });
+    }
+
+    if (phase.status === 'PAID') {
+      return res.status(400).json({ success: false, message: 'Cannot delete a paid phase.' });
+    }
+
+    await PaymentPhase.deleteOne({ _id: phaseId });
+
+    res.json({ success: true, message: 'Phase deleted.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server error.', error: error.message });
+  }
+};
+
+module.exports = {
+  createPaymentPlan,
+  getPaymentPlans,
+  getPaymentPlan,
+  getPaymentsByClient,
+  getPaymentByProject,
+  markPhaseAsPaid,
+  markFullPayment,
+  getPaymentHistory,
+  addPhases,
+  updatePaymentPlan,
+  updatePhase,
+  deletePhase
+};

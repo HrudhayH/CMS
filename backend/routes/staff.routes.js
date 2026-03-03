@@ -5,10 +5,14 @@ const {
   updateStaff,
   deleteStaff,
   updateStaffStatus,
-  getAllStaff
+  getStaff,
+  getAllStaff,
+  getStaffById
 } = require('../controllers/staff.controller');
 
-router.get('/', getAllStaff);
+router.get('/', getStaff);
+router.get('/all', getAllStaff);
+router.get('/:id', getStaffById);
 router.post('/', createStaff);
 router.put('/:id', updateStaff);
 router.delete('/:id', deleteStaff);
