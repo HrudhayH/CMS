@@ -654,8 +654,20 @@ export async function deleteAdminUser(id) {
 
 // Generic fetch wrapper that picks the right token based on what's available
 async function fetchWithAnyAuth(endpoint, options = {}) {
-  const token = typeof window !== 'undefined' ?
-    localStorage.getItem('adminToken') || localStorage.getItem('staffToken') || localStorage.getItem('clientToken') : null;
+  let token = null;
+
+  if (typeof window !== 'undefined') {
+    const path = window.location.pathname;
+    if (path.startsWith('/admin')) {
+      token = localStorage.getItem('adminToken');
+    } else if (path.startsWith('/staff')) {
+      token = localStorage.getItem('staffToken');
+    } else if (path.startsWith('/client')) {
+      token = localStorage.getItem('clientToken');
+    } else {
+      token = localStorage.getItem('adminToken') || localStorage.getItem('staffToken') || localStorage.getItem('clientToken');
+    }
+  }
 
   const headers = {
     'Content-Type': 'application/json',
@@ -674,6 +686,19 @@ async function fetchWithAnyAuth(endpoint, options = {}) {
   const data = await response.json();
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.startsWith('/admin')) {
+        localStorage.removeItem('adminToken');
+        window.location.href = '/admin/login';
+      } else if (path.startsWith('/staff')) {
+        localStorage.removeItem('staffToken');
+        window.location.href = '/staff/login';
+      } else if (path.startsWith('/client')) {
+        localStorage.removeItem('clientToken');
+        window.location.href = '/client/login';
+      }
+    }
     throw new Error(data.message || 'Request failed');
   }
 
