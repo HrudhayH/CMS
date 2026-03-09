@@ -4,6 +4,7 @@ const Project = require('../models/Project');
 const PaymentPlan = require('../models/PaymentPlan');
 const PaymentPhase = require('../models/PaymentPhase');
 const PaymentHistory = require('../models/PaymentHistory');
+const { getSignedUrl } = require('../utils/supabaseStorage');
 
 // Client login
 const clientLogin = async (req, res) => {
@@ -259,6 +260,14 @@ const getClientProjectRoadmap = async (req, res) => {
     if (!roadmap) {
       // Return null if no roadmap exists yet
       return res.status(200).json(null);
+    }
+
+    // Generate signed URLs for all phases that have a file
+    for (let phase of roadmap.phases) {
+        if (phase.document_type === 'file' && phase.document_value) {
+            const signedUrl = await getSignedUrl(phase.document_value);
+            phase.document_file_url = signedUrl; // Attach signed URL to existing field for UI compatibility
+        }
     }
 
     // Return the roadmap

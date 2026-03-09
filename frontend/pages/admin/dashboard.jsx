@@ -68,6 +68,17 @@ export default function Dashboard() {
     }
   };
 
+  const formatCurrency = (amount) => {
+    if (amount >= 1000) {
+      return `₹${(amount / 1000).toFixed(1)}k`;
+    }
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   const kpis = stats ? [
     {
       label: 'Total Clients',
@@ -87,16 +98,16 @@ export default function Dashboard() {
     },
     {
       label: 'Monthly Revenue',
-      value: '$24.5k', // Placeholder as backend doesn't provide this yet
-      secondary: '+12% from last month',
+      value: formatCurrency(stats.monthlyRevenue || 0),
+      secondary: 'This month so far',
       icon: RevenueIcon,
       color: 'var(--color-info-500)',
       bg: 'var(--color-info-50)'
     },
     {
       label: 'Pending Payments',
-      value: '18', // Placeholder
-      secondary: 'Require attention',
+      value: stats.pendingPayments || 0,
+      secondary: 'Phases requiring attention',
       icon: PaymentIcon,
       color: 'var(--color-error-500)',
       bg: 'var(--color-error-50)'

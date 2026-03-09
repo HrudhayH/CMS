@@ -80,20 +80,37 @@ const MOMIcon = () => (
     </svg>
 );
 
-const navItems = [
-    { href: '/client/dashboard', label: 'Dashboard', icon: DashboardIcon },
-    { href: '/client/projects', label: 'Projects', icon: ProjectsIcon },
-    { href: '/client/updates', label: 'Daily Updates', icon: UpdatesIcon },
-    { href: '/client/payments', label: 'Payments', icon: PaymentsIcon },
-    { href: '/client/mom', label: 'Meeting Minutes', icon: MOMIcon },
-    { href: '/client/profile', label: 'Profile', icon: ProfileIcon },
-];
+const RoadmapIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+        <line x1="9" y1="3" x2="9" y2="18" />
+        <line x1="15" y1="6" x2="15" y2="21" />
+    </svg>
+);
 
 export default function ClientLayout({ children }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const { logout, user } = useClientAuth();
     const router = useRouter();
+
+    // Extract project ID from URL if present (could be 'id' or 'projectId')
+    const { id, projectId } = router.query;
+    const activeProjectId = id || projectId;
+
+    const navItems = [
+        { href: '/client/dashboard', label: 'Dashboard', icon: DashboardIcon },
+        { href: '/client/projects', label: 'Projects', icon: ProjectsIcon },
+        { 
+            href: activeProjectId ? `/client/projects/${activeProjectId}/roadmap` : '/client/projects', 
+            label: 'Roadmap', 
+            icon: RoadmapIcon 
+        },
+        { href: '/client/updates', label: 'Daily Updates', icon: UpdatesIcon },
+        { href: '/client/payments', label: 'Payments', icon: PaymentsIcon },
+        { href: '/client/mom', label: 'Meeting Minutes', icon: MOMIcon },
+        { href: '/client/profile', label: 'Profile', icon: ProfileIcon },
+    ];
 
     // Close mobile sidebar on route change
     useEffect(() => {
@@ -140,12 +157,14 @@ export default function ClientLayout({ children }) {
 
                 <nav className={styles.nav}>
                     <ul className={styles.navList}>
-                        {navItems.map((item) => {
+                        {navItems.map((item, index) => {
                             const Icon = item.icon;
-                            const isActive = router.pathname === item.href;
+                            // Check for active state - either exact match or sub-path match for Roadmap
+                            const isActive = router.pathname === item.href || 
+                                           (item.label === 'Roadmap' && router.pathname.includes('/roadmap'));
 
                             return (
-                                <li key={item.href} className={styles.navItem}>
+                                <li key={`${item.href}-${index}`} className={styles.navItem}>
                                     <Link
                                         href={item.href}
                                         className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}
