@@ -12,26 +12,7 @@ import { getProjectComments, addProjectComment, deleteProjectComment, updateComm
 import styles from './ProjectDiscussion.module.css';
 
 const ProjectDiscussion = ({ projectId, userRole, userId, userName }) => {
-  // Guard: don't render if missing required props - BEFORE any hooks
-  if (!userId || !userName) {
-    return null;
-  }
-
-  // If projectId is loading, show loading state
-  if (!projectId) {
-    return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        padding: '40px',
-        color: '#667eea'
-      }}>
-        Loading discussion...
-      </div>
-    );
-  }
-
+  // All hooks MUST be declared before any conditional returns (React Rules of Hooks)
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,6 +32,8 @@ const ProjectDiscussion = ({ projectId, userRole, userId, userName }) => {
 
   // Load initial messages
   useEffect(() => {
+    if (!projectId || !userId || !userName) return;
+
     const loadMessages = async () => {
       try {
         setLoading(true);
@@ -70,13 +53,13 @@ const ProjectDiscussion = ({ projectId, userRole, userId, userName }) => {
       }
     };
 
-    if (projectId) {
-      loadMessages();
-    }
-  }, [projectId]);
+    loadMessages();
+  }, [projectId, userId, userName]);
 
   // Join project room and listen for messages
   useEffect(() => {
+    if (!projectId || !userId) return;
+
     joinProjectRoom(projectId, userId, userRole);
 
     const handleReceiveMessage = (data) => {
@@ -96,6 +79,26 @@ const ProjectDiscussion = ({ projectId, userRole, userId, userName }) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Guard: don't render if missing required props (AFTER hooks)
+  if (!userId || !userName) {
+    return null;
+  }
+
+  // If projectId is loading, show loading state
+  if (!projectId) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        padding: '40px',
+        color: '#667eea'
+      }}>
+        Loading discussion...
+      </div>
+    );
+  }
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
