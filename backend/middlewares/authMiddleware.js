@@ -14,7 +14,16 @@ const authMiddleware = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    return res.status(401).json({ success: false, message: 'Invalid token.' });
+    console.error('JWT Verification Error:', error.message);
+    let message = 'Invalid token.';
+    if (error.name === 'TokenExpiredError') {
+      message = 'Token has expired. Please log in again.';
+    } else if (error.name === 'JsonWebTokenError') {
+      message = 'Invalid token signature or format.';
+    } else {
+      message = error.message || 'Authentication failed.';
+    }
+    return res.status(401).json({ success: false, message });
   }
 };
 
