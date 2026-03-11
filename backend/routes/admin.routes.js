@@ -14,7 +14,9 @@ const {
   getAdminById,
   createAdmin,
   updateAdmin,
-  deleteAdmin
+  deleteAdmin,
+  getAdminPermissions,
+  updateAdminPermissions
 } = require('../controllers/admin.controller');
 
 router.use(authMiddleware);
@@ -32,5 +34,9 @@ router.get('/admins/:id', roleMiddleware(['super_admin']), getAdminById);
 router.post('/admins', roleMiddleware(['super_admin']), createAdmin);
 router.put('/admins/:id', roleMiddleware(['super_admin']), updateAdmin);
 router.delete('/admins/:id', roleMiddleware(['super_admin']), deleteAdmin);
+
+// Dedicated permission management endpoints (super_admin only)
+router.get('/admins/:id/permissions', roleMiddleware(['super_admin']), getAdminPermissions);
+router.patch('/admins/:id/permissions', roleMiddleware(['super_admin']), updateAdminPermissions);
 
 module.exports = router;

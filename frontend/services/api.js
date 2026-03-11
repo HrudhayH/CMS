@@ -648,6 +648,17 @@ export async function deleteAdminUser(id) {
   });
 }
 
+export async function getAdminPermissions(id) {
+  return fetchWithAuth(`/admin/admins/${id}/permissions`);
+}
+
+export async function updateAdminPermissions(id, permissions) {
+  return fetchWithAuth(`/admin/admins/${id}/permissions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ permissions }),
+  });
+}
+
 // ============================================
 // MOM APIs
 // ============================================
