@@ -5,7 +5,9 @@ import {
   getAdmins,
   createAdminUser,
   updateAdminUser,
-  deleteAdminUser
+  deleteAdminUser,
+  getAdminPermissions,
+  updateAdminPermissions
 } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import { formatDate } from '../../utils/helpers';
@@ -36,6 +38,15 @@ const ShieldIcon = () => (
   </svg>
 );
 
+const KeyIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="8" cy="15" r="4" />
+    <line x1="11" y1="12" x2="22" y2="1" />
+    <line x1="20" y1="3" x2="22" y2="5" />
+    <line x1="17" y1="6" x2="19" y2="8" />
+  </svg>
+);
+
 export default function ManageAdmins() {
   const { user } = useAuth();
   const [admins, setAdmins] = useState([]);
@@ -47,6 +58,12 @@ export default function ManageAdmins() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [deletingAdmin, setDeletingAdmin] = useState(null);
+
+  // Manage Access (permissions-only) modal state
+  const [isAccessModalOpen, setIsAccessModalOpen] = useState(false);
+  const [accessAdmin, setAccessAdmin] = useState(null);
+  const [accessPermissions, setAccessPermissions] = useState([]);
+  const [accessLoading, setAccessLoading] = useState(false);
 
   const PERMISSION_OPTIONS = [
     { key: 'view_dashboard', label: 'View Dashboard' },
@@ -93,6 +110,41 @@ export default function ManageAdmins() {
   const openDeleteDialog = (admin) => {
     setDeletingAdmin(admin);
     setIsDeleteDialogOpen(true);
+  };
+
+  const openAccessModal = (admin) => {
+    setAccessAdmin(admin);
+    setAccessPermissions(admin.permissions ? [...admin.permissions] : []);
+    setIsAccessModalOpen(true);
+  };
+
+  const handleAccessPermissionToggle = (permKey) => {
+    setAccessPermissions(prev =>
+      prev.includes(permKey) ? prev.filter(p => p !== permKey) : [...prev, permKey]
+    );
+  };
+
+  const handleAccessSelectAll = () => {
+    const allKeys = PERMISSION_OPTIONS.map(p => p.key);
+    const allSelected = allKeys.every(k => accessPermissions.includes(k));
+    setAccessPermissions(allSelected ? [] : allKeys);
+  };
+
+  const handleAccessSave = async () => {
+    if (!accessAdmin) return;
+    setAccessLoading(true);
+    setError('');
+    try {
+      await updateAdminPermissions(accessAdmin._id, accessPermissions);
+      setSuccess(`Permissions updated for ${accessAdmin.name || accessAdmin.email}`);
+      setIsAccessModalOpen(false);
+      setAccessAdmin(null);
+      fetchAdmins();
+    } catch (err) {
+      setError(err.message || 'Failed to update permissions');
+    } finally {
+      setAccessLoading(false);
+    }
   };
 
   const handleFormChange = (e) => {
@@ -273,6 +325,16 @@ export default function ManageAdmins() {
                   <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                     {admin._id !== user?.id && (
                       <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+                        {admin.role !== 'super_admin' && (
+                          <button
+                            className="btn btn-ghost btn-icon-sm"
+                            onClick={() => openAccessModal(admin)}
+                            title="Manage Access"
+                            style={{ color: '#6366f1' }}
+                          >
+                            <KeyIcon />
+                          </button>
+                        )}
                         <button className="btn btn-ghost btn-icon-sm" onClick={() => openEditModal(admin)} title="Edit"><EditIcon /></button>
                         <button className="btn btn-ghost btn-icon-sm" onClick={() => openDeleteDialog(admin)} title="Delete" style={{ color: 'var(--color-error-600)' }}><TrashIcon /></button>
                       </div>
@@ -388,6 +450,112 @@ export default function ManageAdmins() {
         confirmText="Delete"
         variant="danger"
       />
+
+      {/* ── Manage Access Modal ─────────────────────────────────────────── */}
+      <Modal
+        isOpen={isAccessModalOpen}
+        onClose={() => { setIsAccessModalOpen(false); setAccessAdmin(null); }}
+        title="Manage Access"
+        footer={
+          <>
+            <button
+              className="btn btn-secondary"
+              onClick={() => { setIsAccessModalOpen(false); setAccessAdmin(null); }}
+              disabled={accessLoading}
+            >
+              Cancel
+            </button>
+            <button
+              className="btn btn-primary"
+              onClick={handleAccessSave}
+              disabled={accessLoading}
+            >
+              {accessLoading ? 'Saving...' : 'Save Permissions'}
+            </button>
+          </>
+        }
+      >
+        {accessAdmin && (
+          <div>
+            {/* Admin identity */}
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '12px 14px', borderRadius: '8px',
+              backgroundColor: '#f8fafc', border: '1px solid #e2e8f0',
+              marginBottom: '20px'
+            }}>
+              <div style={{
+                width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
+                background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '13px', fontWeight: '700'
+              }}>
+                {(accessAdmin.name || accessAdmin.email).charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <div style={{ fontWeight: '600', fontSize: '14px', color: '#111827' }}>{accessAdmin.name || '—'}</div>
+                <div style={{ fontSize: '12px', color: '#6b7280' }}>{accessAdmin.email}</div>
+              </div>
+            </div>
+
+            {/* Select all toggle */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span style={{ fontSize: '13px', fontWeight: '600', color: '#374151' }}>Permissions</span>
+              <button
+                type="button"
+                onClick={handleAccessSelectAll}
+                style={{
+                  background: 'none', border: 'none', color: '#3b82f6',
+                  fontSize: '12px', fontWeight: '600', cursor: 'pointer', padding: '2px 4px'
+                }}
+              >
+                {PERMISSION_OPTIONS.every(p => accessPermissions.includes(p.key)) ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+
+            {/* Permission checkboxes */}
+            <div style={{
+              border: '1px solid #e5e7eb', borderRadius: '8px',
+              padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px',
+              backgroundColor: '#f9fafb'
+            }}>
+              {PERMISSION_OPTIONS.map(perm => {
+                const active = accessPermissions.includes(perm.key);
+                return (
+                  <label key={perm.key} style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    cursor: 'pointer', fontSize: '14px', color: '#374151',
+                    padding: '6px 8px', borderRadius: '6px',
+                    backgroundColor: active ? '#eff6ff' : 'transparent',
+                    border: `1px solid ${active ? '#bfdbfe' : 'transparent'}`,
+                    transition: 'background-color 0.15s, border-color 0.15s'
+                  }}>
+                    <input
+                      type="checkbox"
+                      checked={active}
+                      onChange={() => handleAccessPermissionToggle(perm.key)}
+                      style={{ width: '16px', height: '16px', accentColor: '#3b82f6', cursor: 'pointer', flexShrink: 0 }}
+                    />
+                    <span style={{ fontWeight: active ? '600' : '400', color: active ? '#1d4ed8' : '#374151' }}>
+                      {perm.label}
+                    </span>
+                    {active && (
+                      <span style={{ marginLeft: 'auto', fontSize: '11px', color: '#2563eb', fontWeight: '500' }}>Enabled</span>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
+
+            {/* Warning when no permissions selected */}
+            {accessPermissions.length === 0 && (
+              <p style={{ marginTop: '10px', fontSize: '13px', color: '#f59e0b' }}>
+                ⚠ No permissions selected — this admin won&apos;t be able to access any section.
+              </p>
+            )}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }
