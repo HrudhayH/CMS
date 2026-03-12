@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
+import useActionParam from '../../hooks/useActionParam';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert, Button, Card, PageHeader } from '../../components';
 import {
   getStaff,
@@ -193,6 +194,9 @@ export default function Staff() {
     setGeneratedPassword('');
     setIsModalOpen(true);
   };
+
+  // Open Add Staff modal when navigated here via Feature Search (?action=add)
+  useActionParam('add', openAddModal);
 
   const openEditModal = (member) => {
     setEditingStaff(member);

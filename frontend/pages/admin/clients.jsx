@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
+import useActionParam from '../../hooks/useActionParam';
 import {
   DataTable,
   Pagination,
@@ -122,6 +123,9 @@ export default function Clients() {
     setFormData({ name: '', email: '', password: '', phone: '', company: '', gst: '', address: '' });
     setIsModalOpen(true);
   };
+
+  // Open Add Client modal when navigated here via Feature Search (?action=add)
+  useActionParam('add', openAddModal);
 
   const openEditModal = (client) => {
     setEditingClient(client);

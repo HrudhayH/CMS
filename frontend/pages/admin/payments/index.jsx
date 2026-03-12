@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../../layouts/AdminLayout';
+import useActionParam from '../../../hooks/useActionParam';
 import { DataTable, Pagination, StatusBadge, Modal, Alert } from '../../../components';
 import {
   getPaymentPlans,
@@ -106,6 +107,9 @@ export default function Payments() {
     });
     setIsModalOpen(true);
   };
+
+  // Open Add Payment Plan modal when navigated here via Feature Search (?action=add)
+  useActionParam('add', openAddModal);
 
   const handleFormChange = (e) => {
     const { name, value } = e.target;

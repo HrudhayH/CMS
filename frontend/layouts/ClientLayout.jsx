@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import styles from './ClientLayout.module.css';
 import { useClientAuth } from '../hooks/useClientAuth';
+import FeatureSearch from '../components/FeatureSearch';
 
 // Icons as simple SVG components
 // ... (icons remain the same)
@@ -139,6 +140,7 @@ export default function ClientLayout({ children }) {
                 </div>
 
                 <nav className={styles.nav}>
+                    <FeatureSearch portal="client" user={user} isCollapsed={isCollapsed} />
                     <ul className={styles.navList}>
                         {navItems.map((item) => {
                             const Icon = item.icon;
