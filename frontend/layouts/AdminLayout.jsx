@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useAuth } from '../hooks/useAuth';
 import styles from './AdminLayout.module.css';
+import FeatureSearch from '../components/FeatureSearch';
 
 // Icons as simple SVG components
 const DashboardIcon = () => (
@@ -178,6 +179,7 @@ export default function AdminLayout({ children }) {
         </div>
 
         <nav className={styles.nav}>
+          <FeatureSearch portal="admin" user={user} isCollapsed={isCollapsed} />
           <ul className={styles.navList}>
             {navItems
               .filter((item) => {

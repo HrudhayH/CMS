@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '../../layouts/AdminLayout';
+import useActionParam from '../../hooks/useActionParam';
 import { DataTable, Pagination, StatusBadge, Modal, ConfirmDialog, Alert, Button, Card, PageHeader } from '../../components';
 import {
   getProjects,
@@ -403,6 +404,9 @@ export default function Projects() {
     setShowTechSuggestions(false);
     setIsModalOpen(true);
   };
+
+  // Open Add Project modal when navigated here via Feature Search (?action=add)
+  useActionParam('add', openAddModal);
 
   const openEditModal = (project) => {
     setEditingProject(project);

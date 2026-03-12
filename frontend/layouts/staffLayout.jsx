@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useStaffAuth } from '../hooks/useStaffAuth';
 import styles from './AdminLayout.module.css';
+import FeatureSearch from '../components/FeatureSearch';
 
 // Icons
 const DashboardIcon = () => (
@@ -139,6 +140,7 @@ export default function StaffLayout({ children }) {
                 </div>
 
                 <nav className={styles.nav}>
+                    <FeatureSearch portal="staff" user={user} isCollapsed={isCollapsed} />
                     <ul className={styles.navList}>
                         {navItems.map((item) => {
                             const Icon = item.icon;

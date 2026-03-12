@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../layouts/AdminLayout';
+import useActionParam from '../../hooks/useActionParam';
 import { Modal, ConfirmDialog, Alert } from '../../components';
 import {
   getAdmins,
@@ -100,6 +101,9 @@ export default function ManageAdmins() {
     setFormData({ name: '', email: '', password: '', role: 'admin', permissions: [] });
     setIsModalOpen(true);
   };
+
+  // Open Add Admin modal when navigated here via Feature Search (?action=add)
+  useActionParam('add', openAddModal);
 
   const openEditModal = (admin) => {
     setEditingAdmin(admin);
