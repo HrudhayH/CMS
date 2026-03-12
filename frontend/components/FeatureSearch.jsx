@@ -19,15 +19,18 @@ import styles from './FeatureSearch.module.css';
 /**
  * Compute position for the fixed dropdown so it anchors directly
  * below the input wrapper, escaping the sidebar's overflow:hidden.
+ *
+ * Returns string values with 'px' units — required for CSS inline styles.
+ * Without the unit suffix, browsers silently ignore numeric values.
  */
 function getDropdownStyle(containerRef) {
   if (!containerRef.current) return {};
   const rect = containerRef.current.getBoundingClientRect();
   return {
     position: 'fixed',
-    top: rect.bottom,
-    left: rect.left,
-    width: rect.width,
+    top: `${rect.bottom}px`,
+    left: `${rect.left}px`,
+    width: `${rect.width}px`,
   };
 }
 
@@ -71,17 +74,53 @@ export default function FeatureSearch({ portal, user, isCollapsed }) {
   const dropdownRef = useRef(null);
   const containerRef = useRef(null);
 
-  // ── Recalculate fixed position whenever the dropdown opens or window resizes
+  // ── Recalculate fixed position whenever the dropdown opens, window resizes,
+  //    or the sidebar's nav container scrolls (overflow-y: auto on .nav).
   useEffect(() => {
     if (!isOpen) return;
     setDropdownStyle(getDropdownStyle(containerRef));
 
-    function handleResize() {
+    function recalc() {
       setDropdownStyle(getDropdownStyle(containerRef));
     }
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    window.addEventListener('resize', recalc);
+
+    // Also listen for scroll on the closest scrollable ancestor (the nav element).
+    // Walk up from containerRef until we find the first element with overflow-y: auto/scroll.
+    let scrollParent = null;
+    let el = containerRef.current?.parentElement;
+    while (el && el !== document.body) {
+      const style = window.getComputedStyle(el);
+      const overflow = style.overflowY;
+      if (overflow === 'auto' || overflow === 'scroll') {
+        scrollParent = el;
+        break;
+      }
+      el = el.parentElement;
+    }
+    if (scrollParent) {
+      scrollParent.addEventListener('scroll', recalc, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('resize', recalc);
+      if (scrollParent) {
+        scrollParent.removeEventListener('scroll', recalc);
+      }
+    };
   }, [isOpen]);
+
+  // ── Recalculate after sidebar collapse/expand animation completes (250ms).
+  //    The sidebar width transition shifts the input position; wait for it to finish.
+  useEffect(() => {
+    if (!isOpen) return;
+    const TRANSITION_MS = 260; // slightly above var(--transition-normal) = 250ms
+    const id = setTimeout(() => {
+      setDropdownStyle(getDropdownStyle(containerRef));
+    }, TRANSITION_MS);
+    return () => clearTimeout(id);
+  }, [isCollapsed, isOpen]);
 
   // ── Reset active index whenever results change
   useEffect(() => {

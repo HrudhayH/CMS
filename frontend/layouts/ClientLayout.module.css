@@ -14,6 +14,10 @@
   color: white;
   display: flex;
   flex-direction: column;
+  /* Transition width only — do NOT use CSS transforms on the sidebar.
+     A transform creates a new stacking context + containing block, which
+     causes position:fixed children (the search dropdown) to be positioned
+     relative to the sidebar instead of the viewport. */
   transition: width var(--transition-normal);
   z-index: var(--z-fixed);
   overflow: hidden;
@@ -329,12 +333,16 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .sidebar {
-    transform: translateX(-100%);
+    /* Use left offset instead of transform to avoid creating a stacking context.
+       transform: translateX() would make position:fixed children (the search dropdown)
+       position relative to the sidebar element instead of the viewport. */
+    left: calc(-1 * var(--sidebar-width));
     width: var(--sidebar-width);
+    transition: left var(--transition-normal), width var(--transition-normal);
   }
 
   .sidebarOpen {
-    transform: translateX(0);
+    left: 0;
   }
 
   .sidebarCollapsed {
