@@ -571,9 +571,9 @@ export default function ClientRoadmapTab({ projectId }) {
 
                                     {/* Link and File Section */}
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                                        {phase.document_link && (
+                                        {phase.document_type === 'link' && phase.document_value && (
                                             <a
-                                                href={phase.document_link.startsWith('http') ? phase.document_link : `https://${phase.document_link}`}
+                                                href={phase.document_value.startsWith('http') ? phase.document_value : `https://${phase.document_value}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={{
@@ -597,9 +597,9 @@ export default function ClientRoadmapTab({ projectId }) {
                                             </a>
                                         )}
 
-                                        {phase.document_file_url && (
+                                        {phase.document_type === 'file' && phase.document_value && (
                                             <a
-                                                href={phase.document_file_url.startsWith('http') ? phase.document_file_url : `${API_URL}${phase.document_file_url}`}
+                                                href={`${API_URL}/api/roadmap-file?path=${encodeURIComponent(phase.document_value)}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 style={{

@@ -66,18 +66,34 @@ const MOMIcon = () => (
     </svg>
 );
 
-const navItems = [
-    { href: '/staff/dashboard', label: 'Dashboard', icon: DashboardIcon },
-    { href: '/staff/projects', label: 'My Projects', icon: ProjectsIcon },
-    { href: '/staff/mom', label: 'MOM', icon: MOMIcon },
-    { href: '/staff/profile', label: 'My Profile', icon: ProfileIcon },
-];
+const RoadmapIcon = () => (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21" />
+        <line x1="9" y1="3" x2="9" y2="18" />
+        <line x1="15" y1="6" x2="15" y2="21" />
+    </svg>
+);
 
 export default function StaffLayout({ children }) {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
     const router = useRouter();
     const { user, logout, isAuthenticated, isLoading } = useStaffAuth();
+
+    // Extract project ID from URL if present
+    const { id: projectId } = router.query;
+
+    const navItems = [
+        { href: '/staff/dashboard', label: 'Dashboard', icon: DashboardIcon },
+        { href: '/staff/projects', label: 'My Projects', icon: ProjectsIcon },
+        { 
+            href: projectId ? `/staff/projects/${projectId}/roadmap` : '/staff/projects', 
+            label: 'Roadmap', 
+            icon: RoadmapIcon 
+        },
+        { href: '/staff/mom', label: 'MOM', icon: MOMIcon },
+        { href: '/staff/profile', label: 'My Profile', icon: ProfileIcon },
+    ];
 
     useEffect(() => {
         setIsMobileOpen(false);
@@ -142,12 +158,14 @@ export default function StaffLayout({ children }) {
                 <nav className={styles.nav}>
                     <FeatureSearch portal="staff" user={user} isCollapsed={isCollapsed} />
                     <ul className={styles.navList}>
-                        {navItems.map((item) => {
+                        {navItems.map((item, index) => {
                             const Icon = item.icon;
-                            const isActive = router.pathname === item.href;
+                            // Check for active state - either exact match or sub-path match for Roadmap
+                            const isActive = router.pathname === item.href || 
+                                           (item.label === 'Roadmap' && router.pathname.includes('/roadmap'));
 
                             return (
-                                <li key={item.href} className={styles.navItem}>
+                                <li key={`${item.href}-${index}`} className={styles.navItem}>
                                     <Link
                                         href={item.href}
                                         className={`${styles.navLink} ${isActive ? styles.navLinkActive : ''}`}

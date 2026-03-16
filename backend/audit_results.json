@@ -1,0 +1,245 @@
+{
+  "admins": [
+    {
+      "_id": "697c67f5ece8b2f103fb4728",
+      "email": "admin@cms.com",
+      "role": "admin"
+    },
+    {
+      "_id": "699eab82a32d2f572d3c8ec3",
+      "email": "superadmin@cms.com",
+      "role": "super_admin"
+    },
+    {
+      "_id": "699eae8d8ca8f747e0783c7e",
+      "email": "admin2@cms.com",
+      "role": "super_admin"
+    },
+    {
+      "_id": "69a033310ac9040b20ea1a02",
+      "email": "hrudhay.2003@gmail.com",
+      "role": "super_admin"
+    },
+    {
+      "_id": "69a033890ac9040b20ea1a27",
+      "email": "kilagiv813@pazuric.com",
+      "role": "admin"
+    },
+    {
+      "_id": "69a7d885e3cd1465e5a20f3d",
+      "email": "hr@gmail.com",
+      "role": "admin"
+    }
+  ],
+  "staff": [
+    {
+      "_id": "697c68f7d584cb248f27003b",
+      "name": "Jane Smith",
+      "email": "jane@example.com"
+    },
+    {
+      "_id": "6981ef23fc9aa7e1598ff77d",
+      "name": "detofe",
+      "email": "ninecef583@gamepec.com"
+    },
+    {
+      "_id": "69820ce1dcc4cb30c8e34d2a",
+      "name": "lavanya",
+      "email": "lavanya@gmail.com"
+    },
+    {
+      "_id": "698229a4410e0380988f9281",
+      "name": "Demo",
+      "email": "admin@chitfunds.com"
+    },
+    {
+      "_id": "69832a504a5a32cd7262683c",
+      "name": "Demo",
+      "email": "lavanya1@gmail.com"
+    },
+    {
+      "_id": "698338bd12408a9a1653f65d",
+      "name": "Paru",
+      "email": "gireeshma053@gmail.com"
+    },
+    {
+      "_id": "69834096ac039da75732fe7d",
+      "name": "test",
+      "email": "test@test.in"
+    },
+    {
+      "_id": "6989b28f424fd18a0e4d6f97",
+      "name": "DEMO",
+      "email": "demo@cms.in"
+    },
+    {
+      "_id": "699ff5fbf3887f9261a52c04",
+      "name": "kjsdBF",
+      "email": "dksfhwef"
+    },
+    {
+      "_id": "69a03c77cfc14f571a607073",
+      "name": "Test Staff",
+      "email": "staff1@cms.com"
+    },
+    {
+      "_id": "69a03dd3cfc14f571a60709b",
+      "name": "gireeshma",
+      "email": "gireeshma@gmail.com"
+    },
+    {
+      "_id": "69a137fc194d9a1cf2bd8c29",
+      "name": "Gireeshma",
+      "email": "lavanya@italliancetech.com"
+    },
+    {
+      "_id": "69a2ff24db7c261ab0cf0d29",
+      "name": "Demo L",
+      "email": "demol@gmail.com"
+    },
+    {
+      "_id": "69a7d6c7e3cd1465e5a20ee5",
+      "name": "sathvika",
+      "email": "sathvika@gmail.com"
+    },
+    {
+      "_id": "69a7d6f0e3cd1465e5a20eec",
+      "name": "Naveen",
+      "email": "naveen@gmail.com"
+    }
+  ],
+  "clients": [
+    {
+      "company": "",
+      "_id": "697c68e5d584cb248f270037",
+      "name": "John Doe",
+      "email": "john@example.com"
+    },
+    {
+      "company": "",
+      "_id": "6981f7845db18da909733a74",
+      "name": "lavanya",
+      "email": "lavi@cms.com"
+    },
+    {
+      "company": "",
+      "_id": "69835e5fd83a48cc488737a7",
+      "name": "Paru",
+      "email": "lavanya1@gmail.com"
+    },
+    {
+      "company": "",
+      "_id": "69836032d83a48cc488737ac",
+      "name": "test",
+      "email": "test@gmail.com"
+    },
+    {
+      "_id": "6984a4f774c801c5648cf0d3",
+      "name": "lavi",
+      "email": "lavi@gmail.com",
+      "company": "it alliance"
+    },
+    {
+      "company": "",
+      "_id": "6984a5837ffa0b2af05197be",
+      "name": "Test Client",
+      "email": "testclient@example.com"
+    },
+    {
+      "company": "",
+      "_id": "6985f219641574d88fbf13ad",
+      "name": "Audit Client",
+      "email": "audit_client@example.com"
+    },
+    {
+      "company": "",
+      "_id": "6989b255424fd18a0e4d6f88",
+      "name": "DEMO",
+      "email": "demo@cms.in"
+    },
+    {
+      "_id": "69a03d5acfc14f571a60708b",
+      "name": "Lavanya",
+      "email": "lavanya@gmail.com",
+      "company": "Lavanya"
+    },
+    {
+      "_id": "69a2d4e8c1c40425602e912c",
+      "name": "test",
+      "email": "test@test.in",
+      "company": ""
+    },
+    {
+      "_id": "69a2fef8db7c261ab0cf0d1f",
+      "name": "Demo",
+      "email": "demo@gmail.com",
+      "company": "demo company"
+    },
+    {
+      "_id": "69a7d637e3cd1465e5a20ec5",
+      "name": "Real Food",
+      "email": "realfood@gmail.com",
+      "company": "Real Food"
+    }
+  ],
+  "projects": [
+    {
+      "_id": "6981ef36fc9aa7e1598ff785",
+      "title": "test",
+      "status": "In Progress"
+    },
+    {
+      "_id": "6981f7b95db18da909733a7d",
+      "title": "Gaming",
+      "status": "On Hold"
+    },
+    {
+      "_id": "69831bdcecaecb9b86742cf7",
+      "title": "Project",
+      "status": "Completed"
+    },
+    {
+      "_id": "69831d2decaecb9b86742d20",
+      "title": "ABC",
+      "status": "In Progress"
+    },
+    {
+      "_id": "698323ef0520fee4b8d51a3d",
+      "title": "test",
+      "status": "In Progress"
+    },
+    {
+      "_id": "698341efac039da75732fe99",
+      "title": "test",
+      "status": "Completed"
+    },
+    {
+      "_id": "6985f276641574d88fbf13be",
+      "title": "Audit Project",
+      "status": "In Progress"
+    },
+    {
+      "_id": "6989b1c2424fd18a0e4d6f70",
+      "title": "demo",
+      "status": "New"
+    },
+    {
+      "_id": "699ff05df3887f9261a52b1b",
+      "projectCode": "PRJ-0001",
+      "title": "water",
+      "status": "In Progress"
+    },
+    {
+      "_id": "69a2ff79db7c261ab0cf0d35",
+      "projectCode": "PRJ-0002",
+      "title": "demo proejct",
+      "status": "Completed"
+    },
+    {
+      "_id": "69a7d82ce3cd1465e5a20f1f",
+      "projectCode": "PRJ-0003",
+      "title": "Real Food Project",
+      "status": "In Progress"
+    }
+  ]
+}

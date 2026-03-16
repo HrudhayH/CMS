@@ -1099,6 +1099,61 @@ export default function RoadmapTab({ projectId }) {
                                         <div className="phase-progress-text">{phase.progress}%</div>
                                     </div>
 
+                                    {/* Document Links & Files */}
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                                        {phase.document_type === 'link' && phase.document_value && (
+                                            <a
+                                                href={phase.document_value.startsWith('http') ? phase.document_value : `https://${phase.document_value}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 16px',
+                                                    background: '#f8fafc',
+                                                    border: '1px solid #e2e8f0',
+                                                    borderRadius: '8px',
+                                                    color: '#2563eb',
+                                                    fontSize: '13px',
+                                                    fontWeight: '600',
+                                                    textDecoration: 'none',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.background = '#eff6ff'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.background = '#f8fafc'; }}
+                                            >
+                                                🔗 Resource Link
+                                            </a>
+                                        )}
+
+                                        {phase.document_type === 'file' && phase.document_value && (
+                                            <a
+                                                href={`${API_URL}/api/roadmap-file?path=${encodeURIComponent(phase.document_value)}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                    padding: '8px 16px',
+                                                    background: '#ecfdf5',
+                                                    border: '1px solid #d1fae5',
+                                                    borderRadius: '8px',
+                                                    color: '#059669',
+                                                    fontSize: '13px',
+                                                    fontWeight: '600',
+                                                    textDecoration: 'none',
+                                                    transition: 'all 0.2s'
+                                                }}
+                                                onMouseOver={(e) => { e.currentTarget.style.borderColor = '#10b981'; e.currentTarget.style.background = '#f0fdf4'; }}
+                                                onMouseOut={(e) => { e.currentTarget.style.borderColor = '#d1fae5'; e.currentTarget.style.background = '#ecfdf5'; }}
+                                            >
+                                                📄 {phase.document_file_name || 'Download Document'}
+                                            </a>
+                                        )}
+                                    </div>
+
                                     <div className="milestones-section">
                                         <div className="milestones-title">Key Milestones</div>
                                         <div className="milestones-list">

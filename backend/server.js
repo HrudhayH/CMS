@@ -86,6 +86,36 @@ app.get('/', (req, res) => {
   res.json({ message: 'CMS API is running.' });
 });
 
+// Dynamic File Download Redirect (Force Inline Viewing)
+const { getSignedUrl, downloadFile, getMimeType } = require('./utils/supabaseStorage');
+app.get('/api/roadmap-file', async (req, res) => {
+  try {
+    const filePath = req.query.path;
+    if (!filePath) return res.status(400).send('File path is required');
+
+    // Download the file buffer from Supabase
+    const fileData = await downloadFile(filePath);
+    
+    if (fileData) {
+      const fileName = path.basename(filePath);
+      const contentType = getMimeType(fileName);
+      
+      // Set headers for inline viewing
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${fileName}"`);
+      
+      // Send the buffer directly
+      const buffer = Buffer.from(await fileData.arrayBuffer());
+      res.send(buffer);
+    } else {
+      res.status(404).send('File not found');
+    }
+  } catch (error) {
+    console.error('[Roadmap File Proxy] Error:', error);
+    res.status(500).send('Error retrieving file');
+  }
+});
+
 // WebSocket Connection Handler
 io.on('connection', (socket) => {
   console.log(`[WebSocket] User connected: ${socket.id}`);
